@@ -15,7 +15,7 @@
       />
 
       <template
-        v-for="(result, index) in (testResults.expectResults ?? [])"
+        v-for="(result, index) in testResults.expectResults ?? []"
         :key="`result-${index}`"
       >
         <div
@@ -57,7 +57,7 @@
       class="divide-y-4 divide-dividerLight"
     >
       <HttpTestResultEntry
-        v-for="(childTest, index) in (testResults.tests ?? [])"
+        v-for="(childTest, index) in testResults.tests ?? []"
         :key="`child-test-${index}`"
         :test-results="childTest"
         :show-test-type="props.showTestType"

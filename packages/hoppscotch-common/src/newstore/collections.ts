@@ -70,7 +70,13 @@ export function navigateToFolderWithIndexPath(
   collections: HoppCollection[],
   indexPaths: number[]
 ) {
-  if (!collections || !indexPaths || !Array.isArray(indexPaths) || indexPaths.length === 0) return null
+  if (
+    !collections ||
+    !indexPaths ||
+    !Array.isArray(indexPaths) ||
+    indexPaths.length === 0
+  )
+    return null
 
   const paths = [...indexPaths]
   let target = collections[paths.shift() as number]

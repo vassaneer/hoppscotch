@@ -114,7 +114,9 @@
           class="divide-y divide-dividerLight"
         >
           <HttpTestResultReport
-            v-if="testResults.expectResults && testResults.expectResults.length > 0"
+            v-if="
+              testResults.expectResults && testResults.expectResults.length > 0
+            "
             :test-results="testResults"
           />
           <div

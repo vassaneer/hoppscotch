@@ -175,7 +175,9 @@ const tab = useVModel(props, "modelValue", emit)
 const selectedRequestPath = computed(
   () => tab.value.document.selectedRequestPath
 )
-const duration = computed(() => tab.value.document.testRunnerMeta?.totalTime ?? 0)
+const duration = computed(
+  () => tab.value.document.testRunnerMeta?.totalTime ?? 0
+)
 const avgResponseTime = computed(() =>
   calculateAverageTime(
     tab.value.document.testRunnerMeta?.totalTime ?? 0,
@@ -210,7 +212,7 @@ const onChangeRequestPath = (path: string) => {
 
 const collectionName = computed(() =>
   props.modelValue.document.type === "test-runner"
-    ? props.modelValue.document.collection?.name ?? ""
+    ? (props.modelValue.document.collection?.name ?? "")
     : ""
 )
 
