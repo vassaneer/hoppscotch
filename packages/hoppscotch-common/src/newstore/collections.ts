@@ -70,12 +70,13 @@ export function navigateToFolderWithIndexPath(
   collections: HoppCollection[],
   indexPaths: number[]
 ) {
-  if (indexPaths.length === 0) return null
+  if (!collections || !indexPaths || !Array.isArray(indexPaths) || indexPaths.length === 0) return null
 
-  let target = collections[indexPaths.shift() as number]
+  const paths = [...indexPaths]
+  let target = collections[paths.shift() as number]
 
-  while (indexPaths.length > 0 && target)
-    target = target.folders[indexPaths.shift() as number]
+  while (paths && paths.length > 0 && target)
+    target = target.folders[paths.shift() as number]
 
   return target !== undefined ? target : null
 }
@@ -143,6 +144,8 @@ export function cascadeParentCollectionForProperties(
   const variables: HoppInheritedProperty["variables"] = []
 
   if (!folderPath) return { auth, headers, variables }
+
+  if (!collectionStore.value?.state) return { auth, headers, variables }
 
   const path = folderPath.split("/").map((i) => parseInt(i))
 

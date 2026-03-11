@@ -4,8 +4,8 @@
       v-if="
         !isLoading &&
         testResults &&
-        (testResults.expectResults.length ||
-          testResults.tests.length ||
+        ((testResults.expectResults?.length ?? 0) > 0 ||
+          (testResults.tests?.length ?? 0) > 0 ||
           haveEnvVariables)
       "
     >
@@ -297,14 +297,14 @@ const clearContent = () => {
 }
 
 const haveEnvVariables = computed(() => {
-  if (!testResults.value) return false
+  if (!testResults.value?.envDiff) return false
   return (
-    testResults.value.envDiff.global.additions.length ||
-    testResults.value.envDiff.global.updations.length ||
-    testResults.value.envDiff.global.deletions.length ||
-    testResults.value.envDiff.selected.additions.length ||
-    testResults.value.envDiff.selected.updations.length ||
-    testResults.value.envDiff.selected.deletions.length
+    (testResults.value.envDiff.global?.additions?.length ?? 0) > 0 ||
+    (testResults.value.envDiff.global?.updations?.length ?? 0) > 0 ||
+    (testResults.value.envDiff.global?.deletions?.length ?? 0) > 0 ||
+    (testResults.value.envDiff.selected?.additions?.length ?? 0) > 0 ||
+    (testResults.value.envDiff.selected?.updations?.length ?? 0) > 0 ||
+    (testResults.value.envDiff.selected?.deletions?.length ?? 0) > 0
   )
 })
 

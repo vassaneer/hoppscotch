@@ -138,10 +138,10 @@ RUN pnpm install -f --prefer-offline
 
 
 FROM base_builder AS backend_builder
-WORKDIR /usr/src/app/packages/hoppscotch-backend
+WORKDIR /usr/src/app
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
-RUN pnpm exec prisma generate
-RUN pnpm run build
+RUN pnpm --filter=hoppscotch-backend exec prisma generate
+RUN pnpm --filter=hoppscotch-backend run build
 RUN pnpm --filter=hoppscotch-backend deploy /dist/backend --prod --legacy
 WORKDIR /dist/backend
 RUN pnpm exec prisma generate

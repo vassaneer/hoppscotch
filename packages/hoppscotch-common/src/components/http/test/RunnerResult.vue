@@ -41,30 +41,30 @@
       <template #content="{ node }">
         <HttpTestResultFolder
           v-if="
-            node.data.type === 'folders' &&
-            node.data.data.data.requests.length > 0
+            node.data?.type === 'folders' &&
+            node.data?.data?.data?.requests?.length > 0
           "
           :id="node.id"
-          :parent-i-d="node.data.data.parentIndex"
-          :data="node.data.data.data"
+          :parent-i-d="node.data?.data?.parentIndex"
+          :data="node.data?.data?.data"
           :is-open="true"
-          :is-selected="node.data.isSelected"
-          :is-last-item="node.data.isLastItem"
+          :is-selected="node.data?.isSelected"
+          :is-last-item="node.data?.isLastItem"
           :show-selection="showCheckbox"
           folder-type="folder"
         />
 
         <HttpTestResultRequest
-          v-if="node.data.type === 'requests' && !node.data.hidden"
+          v-if="node.data?.type === 'requests' && !node.data?.hidden"
           class="runner-request"
           :show-test-type="selectedTestTab"
-          :request="node.data.data.data"
+          :request="node.data?.data?.data"
           :request-i-d="node.id"
-          :parent-i-d="node.data.data.parentIndex"
+          :parent-i-d="node.data?.data?.parentIndex"
           :is-selected="node.id === selectedRequestPath"
           :show-selection="showCheckbox"
-          :is-last-item="node.data.isLastItem"
-          @select-request="selectRequest(node.data.data.data, node.id)"
+          :is-last-item="node.data?.isLastItem"
+          @select-request="selectRequest(node.data?.data?.data, node.id)"
         />
       </template>
     </HoppSmartTree>

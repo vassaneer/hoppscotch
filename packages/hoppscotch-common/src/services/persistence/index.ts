@@ -955,8 +955,7 @@ export class PersistenceService extends Service {
             `Failed parsing persisted REST_TABS:`,
             JSON.stringify(loadResult.right)
           )
-          // NOTE: Still loading data to match legacy behavior
-          this.restTabService.loadTabsFromPersistedState(loadResult.right)
+          // Skip loading invalid data - tabs are already initialized with defaults
         }
       }
     } catch (_e) {
@@ -998,8 +997,7 @@ export class PersistenceService extends Service {
             `Failed parsing persisted GQL_TABS:`,
             JSON.stringify(loadResult.right)
           )
-          // NOTE: Still loading data to match legacy behavior
-          this.gqlTabService.loadTabsFromPersistedState(loadResult.right)
+          // Skip loading invalid data - tabs are already initialized with defaults
         }
       }
     } catch (_e) {

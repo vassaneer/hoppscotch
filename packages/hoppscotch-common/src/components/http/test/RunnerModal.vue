@@ -336,7 +336,7 @@ const getCollectionTree = async (
 }
 
 function checkIfCollectionIsEmpty(collection: HoppCollection): boolean {
-  // Check if the collection has requests or if any child collection is non-empty
+  if (!collection || !collection.requests || !collection.folders) return true
   return (
     collection.requests.length === 0 &&
     collection.folders.every((folder) => checkIfCollectionIsEmpty(folder))

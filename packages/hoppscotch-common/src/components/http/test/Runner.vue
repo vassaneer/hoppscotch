@@ -175,11 +175,11 @@ const tab = useVModel(props, "modelValue", emit)
 const selectedRequestPath = computed(
   () => tab.value.document.selectedRequestPath
 )
-const duration = computed(() => tab.value.document.testRunnerMeta.totalTime)
+const duration = computed(() => tab.value.document.testRunnerMeta?.totalTime ?? 0)
 const avgResponseTime = computed(() =>
   calculateAverageTime(
-    tab.value.document.testRunnerMeta.totalTime,
-    tab.value.document.testRunnerMeta.completedRequests
+    tab.value.document.testRunnerMeta?.totalTime ?? 0,
+    tab.value.document.testRunnerMeta?.completedRequests ?? 0
   )
 )
 
@@ -210,7 +210,7 @@ const onChangeRequestPath = (path: string) => {
 
 const collectionName = computed(() =>
   props.modelValue.document.type === "test-runner"
-    ? props.modelValue.document.collection.name
+    ? props.modelValue.document.collection?.name ?? ""
     : ""
 )
 
@@ -252,19 +252,19 @@ const runTests = async () => {
 
   if (!isPersonalWorkspace) {
     const requestAuth = tab.value.document.inheritedProperties?.auth
-      .inheritedAuth ?? {
+      ?.inheritedAuth ?? {
       authActive: true,
       authType: "none",
     }
 
-    const requestHeaders = tab.value.document.inheritedProperties?.headers.map(
-      (header) => {
-        if (header.inheritedHeader) {
-          return header.inheritedHeader
-        }
-        return []
+    const requestHeaders = (
+      tab.value.document.inheritedProperties?.headers ?? []
+    ).map((header) => {
+      if (header.inheritedHeader) {
+        return header.inheritedHeader
       }
-    )
+      return []
+    })
 
     const parentVariables = transformInheritedCollectionVariablesToAggregateEnv(
       tab.value.document.inheritedProperties?.variables ?? []
@@ -400,7 +400,7 @@ const refetchCollectionTree = async () => {
 }
 
 function checkIfCollectionIsEmpty(collection: HoppCollection): boolean {
-  // Check if the collection has requests or if any child collection is non-empty
+  if (!collection || !collection.requests || !collection.folders) return true
   return (
     collection.requests.length === 0 &&
     collection.folders.every((folder) => checkIfCollectionIsEmpty(folder))

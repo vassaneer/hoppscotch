@@ -82,18 +82,24 @@ export class TestRunnerCollectionsAdapter implements SmartTreeAdapter<Collection
     collections: HoppCollection[],
     indexPaths: number[]
   ) {
-    if (indexPaths.length === 0) return null
+    if (!collections || !indexPaths || indexPaths.length === 0) return null
 
     let target = collections[indexPaths.shift() as number]
 
-    while (indexPaths.length > 0)
+    while (indexPaths.length > 0 && target)
       target = target.folders[indexPaths.shift() as number]
 
     return target !== undefined ? target : null
   }
-
   getChildren(id: string | null): Ref<ChildrenResult<any>> {
     return computed(() => {
+      if (!this.data.value) {
+        return {
+          status: "loaded",
+          data: [],
+        } as ChildrenResult<Collection>
+      }
+
       if (id === null) {
         const data = this.data.value.map((item, index) => ({
           id: `folder-${index.toString()}`,
@@ -122,13 +128,19 @@ export class TestRunnerCollectionsAdapter implements SmartTreeAdapter<Collection
       }
 
       const folderId = id.split("-")[1]
+      if (!folderId) {
+        return {
+          status: "loaded",
+          data: [],
+        }
+      }
       const indexPath = folderId.split("/").map((x) => parseInt(x))
       const item = this.navigateToFolderWithIndexPath(
         this.data.value,
         indexPath
       )
 
-      if (item && Object.keys(item).length) {
+      if (item && Object.keys(item).length && item.folders && item.requests) {
         // Always include all folders for smooth transitions
         const folderData = item.folders.map((folder, index) => ({
           id: `folder-${folderId}/${index}`,

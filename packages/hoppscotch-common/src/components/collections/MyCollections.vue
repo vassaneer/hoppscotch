@@ -908,12 +908,12 @@ class MyCollectionsAdapter implements SmartTreeAdapter<MyCollectionNode> {
     collections: HoppCollection[],
     indexPaths: number[]
   ) {
-    if (indexPaths.length === 0) return null
+    if (!indexPaths || indexPaths.length === 0) return null
 
     let target = collections[indexPaths.shift() as number]
 
-    while (indexPaths.length > 0)
-      target = target?.folders[indexPaths.shift() as number]
+    while (indexPaths.length > 0 && target)
+      target = target.folders[indexPaths.shift() as number]
 
     return target !== undefined ? target : null
   }

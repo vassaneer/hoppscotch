@@ -57,6 +57,8 @@ export abstract class TabService<Doc>
     watch(
       this.tabOrdering,
       (newOrdering) => {
+        if (!newOrdering) return
+
         if (
           !this.currentTabID.value ||
           !newOrdering.includes(this.currentTabID.value)
@@ -76,6 +78,8 @@ export abstract class TabService<Doc>
     const persistedState = await this.loadPersistedState()
     if (persistedState) {
       this.loadTabsFromPersistedState(persistedState)
+    } else {
+      this.createNewTab(this.createDefaultDocument())
     }
   }
 
@@ -135,7 +139,7 @@ export abstract class TabService<Doc>
   }
 
   public loadTabsFromPersistedState(data: PersistableTabState<Doc>): void {
-    if (data) {
+    if (data && data.orderedDocs) {
       this.tabMap.clear()
       this.tabOrdering.value = []
       this.mruOrder = []
@@ -152,23 +156,27 @@ export abstract class TabService<Doc>
       }
 
       // Ensure at least one tab exists
-      // if (this.tabOrdering.value.length === 0) {
-      //   this.createNewTab(this.createDefaultDocument())
-      // } else if (
-      //   data.lastActiveTabID &&
-      //   this.tabMap.has(data.lastActiveTabID)
-      // ) {
-      //   this.setActiveTab(data.lastActiveTabID)
-      // } else {
-      //   // Set the first tab as active if the saved one doesn't exist
-      //   this.setActiveTab(this.tabOrdering.value[0])
-      // }
+      if (this.tabOrdering.value.length === 0) {
+        this.createNewTab(this.createDefaultDocument())
+      } else if (
+        data.lastActiveTabID &&
+        this.tabMap.has(data.lastActiveTabID)
+      ) {
+        this.setActiveTab(data.lastActiveTabID)
+      } else {
+        // Set the first tab as active if the saved one doesn't exist
+        this.setActiveTab(this.tabOrdering.value[0])
+      }
     }
   }
 
   public getActiveTabs(): Readonly<ComputedRef<HoppTab<Doc>[]>> {
     return shallowReadonly(
-      computed(() => this.tabOrdering.value.map((x) => this.tabMap.get(x)!))
+      computed(() =>
+        this.tabOrdering.value
+          .map((x) => this.tabMap.get(x))
+          .filter((x): x is HoppTab<Doc> => !!x)
+      )
     )
   }
 
@@ -220,9 +228,9 @@ export abstract class TabService<Doc>
 
     // If this is the last tab, create a new default tab first
     // The new tab will be set as active immediately
-    // if (this.tabOrdering.value.length === 1) {
-    //   this.createNewTab(this.createDefaultDocument())
-    // }
+    if (this.tabOrdering.value.length === 1) {
+      this.createNewTab(this.createDefaultDocument())
+    }
 
     this.addToRecentlyClosedTabs(tab, tabIndex)
 

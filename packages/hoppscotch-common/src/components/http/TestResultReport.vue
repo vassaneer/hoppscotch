@@ -33,17 +33,17 @@ const props = defineProps({
   },
 })
 
-const totalTests = computed(() => props.testResults.expectResults.length)
+const totalTests = computed(() => props.testResults?.expectResults?.length ?? 0)
 const failedTests = computed(
   () =>
-    props.testResults.expectResults.filter(
+    props.testResults?.expectResults?.filter(
       (result: { status: string }) => result.status === "fail"
-    ).length
+    ).length ?? 0
 )
 const passedTests = computed(
   () =>
-    props.testResults.expectResults.filter(
+    props.testResults?.expectResults?.filter(
       (result: { status: string }) => result.status === "pass"
-    ).length
+    ).length ?? 0
 )
 </script>

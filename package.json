@@ -67,8 +67,5 @@
       "vue-demi"
     ]
   },
-  "dependencies": {
-    "@hoppscotch/cli": "link:packages/hoppscotch-cli",
-    "cli": "link:../../../.local/share/pnpm/global/5/node_modules/@hoppcotch/cli"
-  }
+  "dependencies": {}
 }

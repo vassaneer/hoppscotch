@@ -15,7 +15,7 @@
       />
 
       <template
-        v-for="(result, index) in testResults.expectResults"
+        v-for="(result, index) in (testResults.expectResults ?? [])"
         :key="`result-${index}`"
       >
         <div
@@ -53,11 +53,11 @@
 
     <!-- Recursively render nested test groups -->
     <div
-      v-if="testResults.tests && testResults.tests.length > 0"
+      v-if="(testResults.tests?.length ?? 0) > 0"
       class="divide-y-4 divide-dividerLight"
     >
       <HttpTestResultEntry
-        v-for="(childTest, index) in testResults.tests"
+        v-for="(childTest, index) in (testResults.tests ?? [])"
         :key="`child-test-${index}`"
         :test-results="childTest"
         :show-test-type="props.showTestType"
@@ -102,7 +102,7 @@ function shouldShowResult(status: HoppTestExpectResult["status"]): boolean {
 const shouldHideResultReport = computed(() => {
   if (props.showTestType === "all") return false
 
-  return props.testResults.expectResults.some(
+  return (props.testResults.expectResults ?? []).some(
     (result) => result.status === "pass" || result.status === "fail"
   )
 })
@@ -113,12 +113,9 @@ const shouldHideResultReport = computed(() => {
  * but allows rendering of test groups that contain nested tests
  */
 const hasResults = computed(() => {
-  const hasExpectResults =
-    props.testResults.expectResults &&
-    props.testResults.expectResults.length > 0
+  const hasExpectResults = (props.testResults.expectResults?.length ?? 0) > 0
 
-  const hasNestedTests =
-    props.testResults.tests && props.testResults.tests.length > 0
+  const hasNestedTests = (props.testResults.tests?.length ?? 0) > 0
 
   return hasExpectResults || hasNestedTests
 })

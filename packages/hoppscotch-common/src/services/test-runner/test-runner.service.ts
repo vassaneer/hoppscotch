@@ -107,7 +107,7 @@ export class TestRunnerService extends Service {
 
       const inheritedHeaders: HoppRESTHeaders = [
         ...(parentHeaders || []),
-        ...collection.headers,
+        ...(collection.headers || []),
       ]
 
       const inheritedVariables = [
@@ -116,13 +116,13 @@ export class TestRunnerService extends Service {
           parentID || collection._ref_id || collection.id
         ) || []),
         ...(populateValuesInInheritedCollectionVars(
-          collection.variables,
+          collection.variables || [],
           collection._ref_id || collection.id
         ) || []),
       ]
 
       // Process folders progressively
-      for (let i = 0; i < collection.folders.length; i++) {
+      for (let i = 0; i < (collection.folders?.length ?? 0); i++) {
         if (options.stopRef?.value) {
           tab.value.document.status = "stopped"
           throw new Error("Test execution stopped")
@@ -156,7 +156,7 @@ export class TestRunnerService extends Service {
       }
 
       // Process requests progressively
-      for (let i = 0; i < collection.requests.length; i++) {
+      for (let i = 0; i < (collection.requests?.length ?? 0); i++) {
         if (options.stopRef?.value) {
           tab.value.document.status = "stopped"
           throw new Error("Test execution stopped")
@@ -179,7 +179,7 @@ export class TestRunnerService extends Service {
             request.auth.authType === "inherit" && request.auth.authActive
               ? inheritedAuth
               : request.auth,
-          headers: [...inheritedHeaders, ...request.headers],
+          headers: [...inheritedHeaders, ...(request.headers || [])],
         }
 
         await this.runTestRequest(
@@ -380,7 +380,7 @@ export class TestRunnerService extends Service {
     let passed = 0
     let failed = 0
 
-    for (const result of testResult.expectResults) {
+    for (const result of testResult.expectResults || []) {
       if (result.status === "pass") {
         passed++
       } else if (result.status === "fail") {
@@ -388,7 +388,7 @@ export class TestRunnerService extends Service {
       }
     }
 
-    for (const nestedTest of testResult.tests) {
+    for (const nestedTest of testResult.tests || []) {
       const nestedResult = this.getTestResultInfo(nestedTest)
       passed += nestedResult.passed
       failed += nestedResult.failed

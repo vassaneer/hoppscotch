@@ -1079,7 +1079,10 @@ export class TeamCollectionsService extends Service<void> {
         )
       )
 
-      if (data.right.collection!.children.length !== TEAMS_BACKEND_PAGE_SIZE)
+      if (
+        (data.right.collection!.children?.length ?? 0) !==
+        TEAMS_BACKEND_PAGE_SIZE
+      )
         break
     }
 
@@ -1116,7 +1119,10 @@ export class TeamCollectionsService extends Service<void> {
         })
       )
 
-      if (data.right.requestsInCollection.length !== TEAMS_BACKEND_PAGE_SIZE)
+      if (
+        (data.right.requestsInCollection?.length ?? 0) !==
+        TEAMS_BACKEND_PAGE_SIZE
+      )
         break
     }
 
