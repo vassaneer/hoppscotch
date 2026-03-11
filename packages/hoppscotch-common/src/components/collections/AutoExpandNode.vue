@@ -8,23 +8,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{ expand: [] }>()
 
-// Synchronous check-and-expand. No nextTick needed: we read the current prop
-// values immediately, so there is no async gap where a double-toggle could
-// flip the node back closed.
 const tryExpand = () => {
   if (props.shouldExpand && !props.isOpen) emit("expand")
 }
 
-// Cascade: when a parent expands its children mount, each child's onMounted
-// fires and expands it if needed, revealing grandchildren, and so on.
+// Cascade: when a parent expands, child nodes mount and their onMounted
+// fires, expanding them if they're in the active path.
 onMounted(tryExpand)
 
-// Tab switch (or async tab-state load on refresh): for already-mounted nodes
-// the watch fires when shouldExpand changes false → true.
+// Tab switch / async tab-state load on refresh: for already-mounted nodes,
+// fires when shouldExpand changes false → true.
 watch(
   () => props.shouldExpand,
   (should) => {
     if (should) tryExpand()
+  }
+)
+
+// Re-expand when a node in the active path is collapsed (e.g. user manually
+// collapses it while on the active tab — shouldExpand never changes so the
+// watcher above doesn't fire). This keeps the active request always visible.
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (!open) tryExpand()
   }
 )
 </script>
