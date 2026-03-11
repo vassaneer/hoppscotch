@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onMounted, nextTick } from "vue"
+import { watch, onMounted } from "vue"
 
 const props = defineProps<{
   isOpen: boolean
@@ -8,21 +8,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{ expand: [] }>()
 
-const tryExpand = async () => {
-  if (!props.shouldExpand || props.isOpen) return
-  await nextTick()
-  // Re-check after tick: props may have changed while awaiting,
-  // and toggleChildren is a toggle — calling it twice would close the node.
-  if (!props.shouldExpand || props.isOpen) return
-  emit("expand")
+// Synchronous check-and-expand. No nextTick needed: we read the current prop
+// values immediately, so there is no async gap where a double-toggle could
+// flip the node back closed.
+const tryExpand = () => {
+  if (props.shouldExpand && !props.isOpen) emit("expand")
 }
 
-// Cascade: when a parent expands, child nodes mount and onMounted triggers
-// expansion, which reveals grandchildren, and so on recursively.
+// Cascade: when a parent expands its children mount, each child's onMounted
+// fires and expands it if needed, revealing grandchildren, and so on.
 onMounted(tryExpand)
 
-// Tab switch: for already-mounted (visible) nodes, fire when shouldExpand
-// changes from false → true.
+// Tab switch (or async tab-state load on refresh): for already-mounted nodes
+// the watch fires when shouldExpand changes false → true.
 watch(
   () => props.shouldExpand,
   (should) => {
