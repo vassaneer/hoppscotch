@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from "vue"
+import { watch, onMounted } from "vue"
 
 const props = defineProps<{
   isOpen: boolean
@@ -8,15 +8,16 @@ const props = defineProps<{
 
 const emit = defineEmits<{ expand: [] }>()
 
-// When this node is in the path to the active request and is currently
-// collapsed, trigger expansion. The `immediate` flag handles the case
-// where a parent was just expanded and this child mounts already needing
-// to be open (cascading expansion down to the target folder).
-watch(
-  () => props.shouldExpand,
-  (should) => {
-    if (should && !props.isOpen) emit("expand")
-  },
-  { immediate: true }
-)
+const tryExpand = () => {
+  if (props.shouldExpand && !props.isOpen) emit("expand")
+}
+
+// `onMounted` handles the cascade: when a parent expands, its children
+// mount and each child fires `onMounted`, triggering expansion if needed.
+// This cascades all the way down to the target folder.
+onMounted(tryExpand)
+
+// `watch` (without immediate) handles tab switches after initial render —
+// when `shouldExpand` changes from false → true for already-mounted nodes.
+watch(() => props.shouldExpand, tryExpand)
 </script>
