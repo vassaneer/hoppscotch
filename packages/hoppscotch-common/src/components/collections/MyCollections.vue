@@ -44,6 +44,12 @@
         <template
           #content="{ node, toggleChildren, isOpen, highlightChildren }"
         >
+          <CollectionsAutoExpandNode
+            v-if="node.data.type !== 'requests'"
+            :is-open="isOpen"
+            :should-expand="activeRequestPathPrefixes.has(node.id)"
+            @expand="toggleChildren"
+          />
           <CollectionsCollection
             v-if="node.data.type === 'collections'"
             :id="node.id"
@@ -770,6 +776,30 @@ const active = computed(
     tabs.currentActiveTab.value?.document.type !== "test-runner" &&
     tabs.currentActiveTab.value?.document.saveContext
 )
+
+// Computes the set of tree node IDs that must be expanded to reveal the
+// active tab's request. For a request at folderPath "0/1/2", the set is
+// {"0", "0/1", "0/1/2"} — one entry per ancestor collection/folder.
+const activeRequestPathPrefixes = computed(() => {
+  const saveCtx = tabs.currentActiveTab.value?.document.saveContext
+  if (
+    !saveCtx ||
+    tabs.currentActiveTab.value?.document.type === "test-runner" ||
+    saveCtx.originLocation !== "user-collection" ||
+    !saveCtx.folderPath
+  ) {
+    return new Set<string>()
+  }
+
+  const segments = saveCtx.folderPath.split("/")
+  const prefixes = new Set<string>()
+  let current = ""
+  for (const seg of segments) {
+    current = current ? `${current}/${seg}` : seg
+    prefixes.add(current)
+  }
+  return prefixes
+})
 
 const isActiveRequest = (folderPath: string, requestRefID: string) => {
   if (active.value === null || !active.value) return false

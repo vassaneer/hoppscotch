@@ -52,6 +52,7 @@ declare module 'vue' {
     CollectionsAdd: typeof import('./components/collections/Add.vue')['default']
     CollectionsAddFolder: typeof import('./components/collections/AddFolder.vue')['default']
     CollectionsAddRequest: typeof import('./components/collections/AddRequest.vue')['default']
+    CollectionsAutoExpandNode: typeof import('./components/collections/AutoExpandNode.vue')['default']
     CollectionsCollection: typeof import('./components/collections/Collection.vue')['default']
     CollectionsDocumentation: typeof import('./components/collections/documentation/index.vue')['default']
     CollectionsDocumentationCollectionPreview: typeof import('./components/collections/documentation/CollectionPreview.vue')['default']
