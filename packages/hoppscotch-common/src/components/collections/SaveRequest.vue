@@ -196,13 +196,13 @@ const emit = defineEmits<{
 
 const gqlRequestName = computedWithControl(
   () => GQLTabs.currentActiveTab.value,
-  () => GQLTabs.currentActiveTab.value.document.request.name
+  () => GQLTabs.currentActiveTab.value?.document.request.name ?? ""
 )
 
 const restRequestName = computedWithControl(
   () => RESTTabs.currentActiveTab.value,
   () =>
-    RESTTabs.currentActiveTab.value.document.type === "request"
+    RESTTabs.currentActiveTab.value?.document.type === "request"
       ? RESTTabs.currentActiveTab.value.document.request.name
       : ""
 )
@@ -223,12 +223,12 @@ const requestContext = computed(() => {
 
   if (
     props.mode === "rest" &&
-    RESTTabs.currentActiveTab.value.document.type === "request"
+    RESTTabs.currentActiveTab.value?.document.type === "request"
   ) {
     return RESTTabs.currentActiveTab.value.document.request
   }
 
-  return GQLTabs.currentActiveTab.value.document.request
+  return GQLTabs.currentActiveTab.value?.document.request
 })
 
 const requestName = ref(reqName.value)
@@ -258,7 +258,7 @@ watch(
   () => {
     if (
       props.mode === "rest" &&
-      RESTTabs.currentActiveTab.value.document.type === "request"
+      RESTTabs.currentActiveTab.value?.document.type === "request"
     ) {
       requestName.value =
         RESTTabs.currentActiveTab.value?.document.request.name ?? ""
@@ -328,11 +328,11 @@ const saveRequestAs = async () => {
   const requestUpdated =
     props.mode === "rest"
       ? cloneDeep(
-          RESTTabs.currentActiveTab.value.document.type === "request"
+          RESTTabs.currentActiveTab.value?.document.type === "request"
             ? RESTTabs.currentActiveTab.value.document.request
             : null
         )
-      : cloneDeep(GQLTabs.currentActiveTab.value.document.request)
+      : cloneDeep(GQLTabs.currentActiveTab.value?.document.request)
 
   if (!requestUpdated) return
 
@@ -347,7 +347,7 @@ const saveRequestAs = async () => {
       requestUpdated
     )
 
-    if (RESTTabs.currentActiveTab.value.document.type !== "request") return
+    if (RESTTabs.currentActiveTab.value?.document.type !== "request") return
 
     RESTTabs.currentActiveTab.value.document = {
       request: requestUpdated,
@@ -622,16 +622,18 @@ const updateTeamCollectionOrFolder = (
       (result) => {
         const { createRequestInCollection } = result
 
-        RESTTabs.currentActiveTab.value.document = {
-          request: requestUpdated,
-          isDirty: false,
-          type: "request",
-          saveContext: {
-            originLocation: "team-collection",
-            requestID: createRequestInCollection.id,
-            collectionID: createRequestInCollection.collection.id,
-            teamID: createRequestInCollection.collection.team.id,
-          },
+        if (RESTTabs.currentActiveTab.value) {
+          RESTTabs.currentActiveTab.value.document = {
+            request: requestUpdated,
+            isDirty: false,
+            type: "request",
+            saveContext: {
+              originLocation: "team-collection",
+              requestID: createRequestInCollection.id,
+              collectionID: createRequestInCollection.collection.id,
+              teamID: createRequestInCollection.collection.team.id,
+            },
+          }
         }
 
         modalLoadingState.value = false
@@ -645,9 +647,13 @@ const requestSaved = (tab: "REST" | "GQL" = "REST") => {
   toast.success(`${t("request.added")}`)
   nextTick(() => {
     if (tab === "REST") {
-      RESTTabs.currentActiveTab.value.document.isDirty = false
+      if (RESTTabs.currentActiveTab.value) {
+        RESTTabs.currentActiveTab.value.document.isDirty = false
+      }
     } else {
-      GQLTabs.currentActiveTab.value.document.isDirty = false
+      if (GQLTabs.currentActiveTab.value) {
+        GQLTabs.currentActiveTab.value.document.isDirty = false
+      }
     }
   })
   hideModal()

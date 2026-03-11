@@ -128,6 +128,10 @@ export const STORE_KEYS = {
   CURRENT_ENVIRONMENT_VALUE: "currentEnvironmentValue",
   CURRENT_SORT_VALUES: "currentSortValues",
   SCHEMA_VERSION: "schema_version",
+  TEAM_COLLECTIONS: "teamCollections",
+  TEAM_ENVIRONMENTS: "teamEnvironments",
+  EXPANDED_TEAM_COLLECTIONS: "expandedTeamCollections",
+  RECENT_ENDPOINTS: "recentEndpoints",
 } as const
 
 interface Migration {

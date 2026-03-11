@@ -15,13 +15,13 @@
             :id="tab.id"
             :key="tab.id"
             :label="getTabName(tab)"
-            :is-removable="activeTabs.length > 1"
+            :is-removable="true"
             :close-visibility="'hover'"
           >
             <template v-if="tab.document.type === 'request'" #tabhead>
               <HttpTabHead
                 :tab="tab"
-                :is-removable="activeTabs.length > 1"
+                :is-removable="true"
                 @open-rename-modal="openReqRenameModal(tab.id)"
                 @close-tab="removeTab(tab.id)"
                 @close-other-tabs="closeOtherTabsAction(tab.id)"
@@ -67,6 +67,14 @@
             <EnvironmentsSelector class="h-full" />
           </template>
         </HoppSmartWindows>
+        <div
+          v-else
+          class="flex flex-1 flex-col items-center justify-center text-secondaryLight"
+        >
+          <icon-lucide-layers class="svg-icons mb-4 h-16 w-16" />
+          <h2 class="mb-4 text-lg font-semibold">{{ t("empty.rest") }}</h2>
+          <HoppButtonPrimary :label="t('action.new_tab')" @click="addNewTab" />
+        </div>
       </template>
       <template #sidebar>
         <HttpSidebar />
@@ -205,7 +213,11 @@ function bindRequestToURLParams() {
     // We skip URL params parsing
     if (Object.keys(query).length === 0 || query.code || query.error) return
 
-    if (tabs.currentActiveTab.value.document.type !== "request") return
+    if (
+      !tabs.currentActiveTab.value ||
+      tabs.currentActiveTab.value.document.type !== "request"
+    )
+      return
 
     const request = tabs.currentActiveTab.value.document.request
 
@@ -317,6 +329,7 @@ const openReqRenameModal = (tabID?: string) => {
     reqName.value = tab.value.document.request.name
     renameTabID.value = tabID
   } else {
+    if (!tabs.currentActiveTab.value) return
     const { id, document } = tabs.currentActiveTab.value
 
     if (document.type !== "request") return
@@ -351,7 +364,7 @@ const onCloseConfirmSaveTab = () => {
  * Called when the user confirms they want to save the tab
  */
 const onResolveConfirmSaveTab = () => {
-  if (tabs.currentActiveTab.value.document.saveContext) {
+  if (tabs.currentActiveTab.value?.document.saveContext) {
     invokeAction("request-response.save")
 
     if (confirmingCloseForTabID.value) {
@@ -410,7 +423,7 @@ defineActionHandler("rest.request.open", ({ doc }) => {
 })
 
 defineActionHandler("request.rename", () => {
-  if (tabs.currentActiveTab.value.document.type === "request")
+  if (tabs.currentActiveTab.value?.document.type === "request")
     openReqRenameModal(tabs.currentActiveTab.value.id)
 })
 

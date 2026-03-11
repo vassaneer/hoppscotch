@@ -6,14 +6,33 @@ RUN apk add --no-cache curl git
 # Install Go 1.26.0 from GitHub releases to fix CVE-2025-47907
 ARG TARGETARCH
 ENV GOLANG_VERSION=1.26.0
-# Download Go tarball
-RUN case "${TARGETARCH}" in amd64) GOARCH=amd64 ;; arm64) GOARCH=arm64 ;; *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; esac && \
+# Download Go tarball (detect arch at runtime if TARGETARCH not set)
+RUN if [ -z "$TARGETARCH" ]; then \
+    case "$(uname -m)" in \
+      x86_64) GOARCH=amd64 ;; \
+      aarch64) GOARCH=arm64 ;; \
+      *) echo "Unsupported arch: $(uname -m)" && exit 1 ;; \
+    esac; \
+  else \
+    case "$TARGETARCH" in \
+      amd64) GOARCH=amd64 ;; \
+      arm64) GOARCH=arm64 ;; \
+      *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
+    esac; \
+  fi && \
   curl -fsSL "https://go.dev/dl/go${GOLANG_VERSION}.linux-${GOARCH}.tar.gz" -o go.tar.gz
 # Checksum verification of Go tarball
-RUN case "${TARGETARCH}" in \
-  amd64) expected="aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235" ;; \
-  arm64) expected="bd03b743eb6eb4193ea3c3fd3956546bf0e3ca5b7076c8226334afe6b75704cd" ;; \
-  esac && \
+RUN if [ -z "$TARGETARCH" ]; then \
+    case "$(uname -m)" in \
+      x86_64) expected="aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235" ;; \
+      aarch64) expected="bd03b743eb6eb4193ea3c3fd3956546bf0e3ca5b7076c8226334afe6b75704cd" ;; \
+    esac; \
+  else \
+    case "$TARGETARCH" in \
+      amd64) expected="aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235" ;; \
+      arm64) expected="bd03b743eb6eb4193ea3c3fd3956546bf0e3ca5b7076c8226334afe6b75704cd" ;; \
+    esac; \
+  fi && \
   actual=$(sha256sum go.tar.gz | cut -d' ' -f1) && \
   [ "$actual" = "$expected" ] && \
   echo "✅ Go Tarball Checksum OK" || \
@@ -231,7 +250,8 @@ COPY aio-multiport-setup.Caddyfile /etc/caddy/aio-multiport-setup.Caddyfile
 COPY aio-subpath-access.Caddyfile /etc/caddy/aio-subpath-access.Caddyfile
 
 ENTRYPOINT [ "tini", "--" ]
-COPY --chmod=755 healthcheck.sh /
+COPY healthcheck.sh /
+RUN chmod 755 /healthcheck.sh
 HEALTHCHECK --interval=2s --start-period=15s CMD /bin/sh /healthcheck.sh
 
 WORKDIR /dist/backend

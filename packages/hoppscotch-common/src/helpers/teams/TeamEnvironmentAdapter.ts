@@ -16,6 +16,9 @@ import {
   translateToNewEnvironmentVariables,
 } from "@hoppscotch/data"
 
+import { getService } from "~/modules/dioc"
+import { PersistenceService, STORE_KEYS } from "~/services/persistence"
+
 type EntityType = "environment"
 type EntityID = `${EntityType}-${string}`
 export default class TeamEnvironmentAdapter {
@@ -36,8 +39,10 @@ export default class TeamEnvironmentAdapter {
   private teamEnvironmentDeleted$: Subscription | null
 
   private teamEnvironmentCreatedSub: WSubscription | null
-  private teamEnvironmentUpdatedSub: WSubscription | null
-  private teamEnvironmentDeletedSub: WSubscription | null
+  private teamEnvironmentDeletedSub: WSubscription | null = null
+  private teamEnvironmentUpdatedSub: WSubscription | null = null
+
+  private persistenceSubscription: Subscription | null = null
 
   constructor(private teamID: string | undefined) {
     this.error$ = new BehaviorSubject<GQLError<string> | null>(null)
@@ -55,6 +60,10 @@ export default class TeamEnvironmentAdapter {
     this.teamEnvironmentDeletedSub = null
     this.teamEnvironmentUpdatedSub = null
 
+    this.persistenceSubscription = this.teamEnvironmentList$.subscribe(() => {
+      this.saveToCache()
+    })
+
     if (teamID) this.initialize()
   }
 
@@ -66,6 +75,8 @@ export default class TeamEnvironmentAdapter {
     this.teamEnvironmentCreatedSub?.unsubscribe()
     this.teamEnvironmentDeletedSub?.unsubscribe()
     this.teamEnvironmentUpdatedSub?.unsubscribe()
+
+    this.persistenceSubscription?.unsubscribe()
   }
 
   changeTeamID(newTeamID: string | undefined) {
@@ -77,14 +88,50 @@ export default class TeamEnvironmentAdapter {
 
     this.unsubscribeSubscriptions()
 
+    this.persistenceSubscription = this.teamEnvironmentList$.subscribe(() => {
+      this.saveToCache()
+    })
+
     if (this.teamID) this.initialize()
   }
 
   async initialize() {
     if (!this.isDispose) throw new Error(`Adapter is already initialized`)
 
-    await this.fetchList()
+    await this.loadFromCache()
+
+    this.fetchList()
     this.registerSubscriptions()
+  }
+
+  private async loadFromCache() {
+    if (!this.teamID) return
+    const persistenceService = getService(PersistenceService)
+    const allCached =
+      (await persistenceService.getNullable<Record<string, TeamEnvironment[]>>(
+        STORE_KEYS.TEAM_ENVIRONMENTS
+      )) ?? {}
+
+    if (allCached[this.teamID]) {
+      this.teamEnvironmentList$.next(allCached[this.teamID])
+      // rebuild entityIDs
+      this.entityIDs.clear()
+      allCached[this.teamID].forEach((env) =>
+        this.entityIDs.add(`environment-${env.id}`)
+      )
+    }
+  }
+
+  private async saveToCache() {
+    if (!this.teamID) return
+    const persistenceService = getService(PersistenceService)
+    const allCached =
+      (await persistenceService.getNullable<Record<string, TeamEnvironment[]>>(
+        STORE_KEYS.TEAM_ENVIRONMENTS
+      )) ?? {}
+
+    allCached[this.teamID] = this.teamEnvironmentList$.value
+    await persistenceService.set(STORE_KEYS.TEAM_ENVIRONMENTS, allCached)
   }
 
   public dispose() {

@@ -32,8 +32,9 @@ import { TeamRequest } from "~/helpers/teams/TeamRequest"
 import { runGQLQuery, runGQLSubscription } from "~/helpers/backend/GQLClient"
 import { HoppInheritedProperty } from "~/helpers/types/HoppInheritedProperties"
 import { ref, watch } from "vue"
-import { Service } from "dioc"
+import { Container, Service } from "dioc"
 import { updateInheritedPropertiesForAffectedRequests } from "~/helpers/collection/collection"
+import { PersistenceService, STORE_KEYS } from "~/services/persistence"
 
 export const TEAMS_BACKEND_PAGE_SIZE = 10
 
@@ -137,10 +138,16 @@ export class TeamCollectionsService extends Service<void> {
   //collection variables current value and secret value services
   private secretEnvironmentService = this.bind(SecretEnvironmentService)
   private currentEnvironmentValueService = this.bind(CurrentValueService)
+  private persistenceService = this.bind(PersistenceService)
+
+  constructor(c: Container) {
+    super(c)
+  }
 
   private teamID: string | null = null
 
   public collections = ref<TeamCollection[]>([])
+  public expandedCollections = ref<string[]>([])
   public loadingCollections = ref<string[]>([])
   public pendingTeamCollectionPath = ref<string | null>(null)
 
@@ -174,6 +181,95 @@ export class TeamCollectionsService extends Service<void> {
 
   override onServiceInit() {
     this.collectionLoadingWatcher()
+    this.setupPersistenceWatcher()
+  }
+
+  /**
+   * Watches for changes in collections and saves to persistence
+   */
+  private setupPersistenceWatcher() {
+    watch(
+      () => this.collections.value,
+      () => {
+        this.saveToPersistence()
+      },
+      { deep: true }
+    )
+
+    watch(
+      () => this.expandedCollections.value,
+      () => {
+        this.saveExpandedToPersistence()
+      },
+      { deep: true }
+    )
+  }
+
+  private async saveToPersistence() {
+    if (!this.teamID) return
+
+    const allCached =
+      (await this.persistenceService.getNullable<
+        Record<string, TeamCollection[]>
+      >(STORE_KEYS.TEAM_COLLECTIONS)) ?? {}
+
+    allCached[this.teamID] = this.collections.value
+
+    await this.persistenceService.set(STORE_KEYS.TEAM_COLLECTIONS, allCached)
+  }
+
+  private async saveExpandedToPersistence() {
+    if (!this.teamID) return
+
+    const allExpanded =
+      (await this.persistenceService.getNullable<Record<string, string[]>>(
+        STORE_KEYS.EXPANDED_TEAM_COLLECTIONS
+      )) ?? {}
+
+    allExpanded[this.teamID] = this.expandedCollections.value
+
+    await this.persistenceService.set(
+      STORE_KEYS.EXPANDED_TEAM_COLLECTIONS,
+      allExpanded
+    )
+  }
+
+  private async loadFromPersistence() {
+    if (!this.teamID) return
+
+    const [allCached, allExpanded] = await Promise.all([
+      this.persistenceService.getNullable<Record<string, TeamCollection[]>>(
+        STORE_KEYS.TEAM_COLLECTIONS
+      ),
+      this.persistenceService.getNullable<Record<string, string[]>>(
+        STORE_KEYS.EXPANDED_TEAM_COLLECTIONS
+      ),
+    ])
+
+    if (allExpanded?.[this.teamID]) {
+      this.expandedCollections.value = allExpanded[this.teamID]
+    }
+
+    if (allCached?.[this.teamID]) {
+      this.collections.value = allCached[this.teamID]
+
+      // Rebuild entityIDs set
+      this.entityIDs.clear()
+      const traverse = (colls: TeamCollection[]) => {
+        for (const col of colls) {
+          this.entityIDs.add(`collection-${col.id}`)
+          if (col.requests) {
+            for (const req of col.requests) {
+              this.entityIDs.add(`request-${req.id}`)
+            }
+          }
+          if (col.children) {
+            traverse(col.children)
+          }
+        }
+      }
+      traverse(this.collections.value)
+    }
   }
 
   /**
@@ -202,7 +298,7 @@ export class TeamCollectionsService extends Service<void> {
    * Change the current team ID and resets the collections
    * @param newTeamID The new team ID to switch to
    */
-  public changeTeamID(newTeamID: string | null) {
+  public async changeTeamID(newTeamID: string | null) {
     this.teamID = newTeamID
     this.collections.value = []
     this.entityIDs.clear()
@@ -211,7 +307,10 @@ export class TeamCollectionsService extends Service<void> {
 
     this.unsubscribeSubscriptions()
 
-    if (this.teamID) this.initialize()
+    if (this.teamID) {
+      await this.loadFromPersistence()
+      this.initialize()
+    }
   }
 
   /**
@@ -331,32 +430,16 @@ export class TeamCollectionsService extends Service<void> {
         )
       }
 
-      if (replace) {
-        this.collections.value = []
-        this.entityIDs.clear()
-
-        totalCollections.push(
-          ...result.right.rootCollectionsOfTeam.map(
-            (x: any) =>
-              <TeamCollection>{
-                ...x,
-                children: null,
-                requests: null,
-              }
-          )
+      totalCollections.push(
+        ...result.right.rootCollectionsOfTeam.map(
+          (x: any) =>
+            <TeamCollection>{
+              ...x,
+              children: null,
+              requests: null,
+            }
         )
-      } else {
-        totalCollections.push(
-          ...result.right.rootCollectionsOfTeam.map(
-            (x: any) =>
-              <TeamCollection>{
-                ...x,
-                children: null,
-                requests: null,
-              }
-          )
-        )
-      }
+      )
 
       if (result.right.rootCollectionsOfTeam.length !== TEAMS_BACKEND_PAGE_SIZE)
         break
@@ -366,12 +449,31 @@ export class TeamCollectionsService extends Service<void> {
       (x) => x !== "root"
     )
 
-    // Add all the collections to the entity ids list
-    totalCollections.forEach((coll) =>
-      this.entityIDs.add(`collection-${coll.id}`)
-    )
+    if (replace) {
+      this.collections.value = []
+      this.entityIDs.clear()
+    }
 
-    this.collections.value.push(...totalCollections)
+    // Merge or Update the collections
+    const newCollections = [...this.collections.value]
+
+    totalCollections.forEach((totalColl) => {
+      const index = newCollections.findIndex((coll) => coll.id === totalColl.id)
+      if (index !== -1) {
+        // Update existing root collection but keep children/requests if they exist
+        newCollections[index] = {
+          ...totalColl,
+          children: newCollections[index].children,
+          requests: newCollections[index].requests,
+        }
+      } else {
+        // Add new root collection
+        newCollections.push(totalColl)
+        this.entityIDs.add(`collection-${totalColl.id}`)
+      }
+    })
+
+    this.collections.value = newCollections
   }
 
   /**
@@ -1033,6 +1135,10 @@ export class TeamCollectionsService extends Service<void> {
   async expandCollection(collectionID: string, reFetch = false): Promise<void> {
     if (this.loadingCollections.value.includes(collectionID)) return
 
+    if (!this.expandedCollections.value.includes(collectionID)) {
+      this.expandedCollections.value.push(collectionID)
+    }
+
     const tree = this.collections.value
 
     const collection = findCollInTree(tree, collectionID)
@@ -1068,7 +1174,25 @@ export class TeamCollectionsService extends Service<void> {
       this.collections.value = [...tree]
     } finally {
       this.loadingCollections.value = this.loadingCollections.value.filter(
-        (x) => x !== collectionID
+        (id) => id !== collectionID
+      )
+    }
+  }
+
+  /**
+   * Toggles the expansion state of a collection
+   * @param collectionID ID of the collection to toggle
+   * @param isOpen Whether the collection is now open
+   */
+  public toggleCollection(collectionID: string, isOpen: boolean) {
+    if (!isOpen) {
+      if (!this.expandedCollections.value.includes(collectionID)) {
+        this.expandedCollections.value.push(collectionID)
+      }
+      this.expandCollection(collectionID)
+    } else {
+      this.expandedCollections.value = this.expandedCollections.value.filter(
+        (id) => id !== collectionID
       )
     }
   }

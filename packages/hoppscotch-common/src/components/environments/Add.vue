@@ -233,7 +233,7 @@ const addEnvironment = async () => {
       )
     )()
   }
-  if (replaceWithVariable.value) {
+  if (replaceWithVariable.value && tabs.currentActiveTab.value) {
     //replace the current tab endpoint with the variable name with << and >>
     const variableName = `<<${editingName.value}>>`
     //replace the currenttab endpoint containing the value in the text with variablename

@@ -71,7 +71,11 @@ export class EnvironmentInspectorService extends Service implements Inspector {
     locations: InspectorLocation
   ) => {
     const newErrors: InspectorResult[] = []
-    const currentTab = this.restTabs.currentActiveTab.value
+    const currentTab = this.restTabs.currentActiveTab?.value
+
+    if (!currentTab) {
+      return newErrors
+    }
 
     // Get the current request or example-response request
     const currentTabRequest =
@@ -200,6 +204,11 @@ export class EnvironmentInspectorService extends Service implements Inspector {
     locations: InspectorLocation
   ) => {
     const newErrors: InspectorResult[] = []
+    const currentTab = this.restTabs.currentActiveTab.value
+
+    if (!currentTab) {
+      return newErrors
+    }
 
     target.forEach((element, index) => {
       if (!isENVInString(element)) return
@@ -207,7 +216,6 @@ export class EnvironmentInspectorService extends Service implements Inspector {
       matches?.forEach((exEnv) => {
         const formattedExEnv = exEnv.slice(2, -2)
         const currentSelectedEnvironment = getCurrentEnvironment()
-        const currentTab = this.restTabs.currentActiveTab.value
 
         // Get current request or example
         const currentTabRequest =

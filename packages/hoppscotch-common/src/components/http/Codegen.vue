@@ -161,11 +161,11 @@ const currentEnvironmentValueService = useService(CurrentValueService)
 const currentActiveRequest = computed(() => {
   let effectiveRequest = null
 
-  if (currentActiveTabDocument.value.type === "request") {
+  if (currentActiveTabDocument.value?.type === "request") {
     effectiveRequest = currentActiveTabDocument.value.request
   }
 
-  if (currentActiveTabDocument.value.type === "example-response") {
+  if (currentActiveTabDocument.value?.type === "example-response") {
     effectiveRequest = makeRESTRequest({
       ...getDefaultRESTRequest(),
       ...currentActiveTabDocument.value.response.originalRequest,
@@ -177,7 +177,9 @@ const currentActiveRequest = computed(() => {
 
 // Retrieve the document
 const currentActiveTabDocument = computed(() =>
-  cloneDeep(tabs.currentActiveTab.value.document)
+  tabs.currentActiveTab.value
+    ? cloneDeep(tabs.currentActiveTab.value.document)
+    : null
 )
 
 const codegenType = ref<CodegenName>("shell-curl")
@@ -242,7 +244,7 @@ const getFinalURL = (input: string): string => {
 const buildFinalEnvironment = (): Environment => {
   const aggregateEnvs = getAggregateEnvsWithCurrentValue()
   const inheritedVariables =
-    currentActiveTabDocument.value.inheritedProperties?.variables || []
+    currentActiveTabDocument.value?.inheritedProperties?.variables || []
 
   const requestVariables = (currentActiveRequest.value?.requestVariables || [])
     .filter((variable) => variable.active)
@@ -291,7 +293,7 @@ const buildFinalEnvironment = (): Environment => {
  */
 const resolveRequestAuthAndHeaders = () => {
   const { auth, headers } = currentActiveRequest.value
-  const { inheritedProperties } = currentActiveTabDocument.value
+  const { inheritedProperties } = currentActiveTabDocument.value ?? {}
 
   const resolvedAuth: HoppRESTAuth =
     auth.authType === "inherit" && auth.authActive
@@ -327,7 +329,7 @@ const buildFinalRequest = (auth: HoppRESTAuth, headers: HoppRESTHeaders) => {
  */
 const requestCode = asyncComputed(async (): Promise<string> => {
   try {
-    if (currentActiveTabDocument.value.type !== "request") {
+    if (currentActiveTabDocument.value?.type !== "request") {
       errorState.value = true
       return ""
     }

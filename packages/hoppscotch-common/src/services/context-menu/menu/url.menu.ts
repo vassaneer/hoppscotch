@@ -90,7 +90,7 @@ export class URLMenuService extends Service implements ContextMenu {
    * @param replacement The replacement text (encoded or decoded)
    */
   private replaceSelectedText(selectedText: string, replacement: string) {
-    const currentTab = this.restTab.currentActiveTab.value
+    const currentTab = this.restTab.currentActiveTab?.value
 
     if (!currentTab || currentTab.document.type !== "request") {
       return

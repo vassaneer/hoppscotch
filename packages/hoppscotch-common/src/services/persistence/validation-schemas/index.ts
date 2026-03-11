@@ -330,7 +330,7 @@ const HoppInheritedPropertySchema = z
 
 export const GQL_TAB_STATE_SCHEMA = z
   .object({
-    lastActiveTabID: z.string(),
+    lastActiveTabID: z.nullable(z.string()),
     orderedDocs: z.array(
       z.object({
         tabID: z.string(),
@@ -555,7 +555,7 @@ const validRestOperations = [
 
 export const REST_TAB_STATE_SCHEMA = z
   .object({
-    lastActiveTabID: z.string(),
+    lastActiveTabID: z.nullable(z.string()),
     orderedDocs: z.array(
       z.object({
         tabID: z.string(),

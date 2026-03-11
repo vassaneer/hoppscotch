@@ -21,6 +21,10 @@ class MockTabService extends TabService<{ request: string }> {
       ])
     )
 
+    this.tabOrdering.value = ["test"]
+    this.mruOrder = ["test"]
+    this.currentTabID.value = "test"
+
     this.watchCurrentTabID()
   }
 
@@ -30,6 +34,14 @@ class MockTabService extends TabService<{ request: string }> {
 
   public getMRUNavigationIndex(): number {
     return this.mruNavigationIndex
+  }
+
+  protected loadPersistedState(): Promise<{ request: string } | null> {
+    return Promise.resolve(null)
+  }
+
+  protected createDefaultDocument(): { request: string } {
+    return { request: "new default request" }
   }
 }
 

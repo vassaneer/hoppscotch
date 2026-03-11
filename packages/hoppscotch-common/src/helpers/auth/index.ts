@@ -12,18 +12,16 @@ export const replaceTemplateStringsInObjectValues = <
 ) => {
   const envs = getCombinedEnvVariables()
   const restTabsService = getService(RESTTabService)
+  const tab = restTabsService.currentActiveTab.value
 
   const requestVariables =
-    source === "REST" &&
-    restTabsService.currentActiveTab.value.document.type === "request"
-      ? restTabsService.currentActiveTab.value.document.request.requestVariables.map(
-          ({ key, value }) => ({
-            key,
-            initialValue: value,
-            currentValue: value,
-            secret: false,
-          })
-        )
+    source === "REST" && tab?.document.type === "request"
+      ? tab.document.request.requestVariables.map(({ key, value }) => ({
+          key,
+          initialValue: value,
+          currentValue: value,
+          secret: false,
+        }))
       : []
 
   // Ensure request variables are prioritized by removing any selected/global environment variables with the same key

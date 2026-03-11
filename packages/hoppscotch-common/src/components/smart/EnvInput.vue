@@ -405,7 +405,10 @@ const envVars = computed(() => {
     )
   }
 
-  const currentTab = tabs.currentActiveTab.value
+  const currentTab = tabs.currentActiveTab ? tabs.currentActiveTab.value : null
+  if (!currentTab) {
+    return [...aggregateEnvs.value]
+  }
   const { document } = currentTab
   const isRequest = document.type === "request"
   const isExample = document.type === "example-response"

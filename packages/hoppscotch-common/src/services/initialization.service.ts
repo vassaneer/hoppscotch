@@ -6,6 +6,7 @@ import { PersistenceService } from "~/services/persistence"
 import { RESTTabService } from "~/services/tab/rest"
 import { GQLTabService } from "~/services/tab/graphql"
 import { KernelInterceptorService } from "~/services/kernel-interceptor.service"
+import { RecentEndpointsService } from "~/services/recent-endpoints.service"
 
 import { platform } from "~/platform"
 import { NativeKernelInterceptorService } from "~/platform/std/kernel-interceptors/native"
@@ -164,6 +165,7 @@ export class InitializationService extends Service<InitEvent> {
 
   public async initPost() {
     await this.initPersistenceLater()
+    getService(RecentEndpointsService)
     performMigrations()
   }
 

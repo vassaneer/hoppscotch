@@ -701,6 +701,7 @@ const setAccessTokenInActiveContext = (
   if (props.source === "REST") {
     const restTab = restTabsService.currentActiveTab.value
     if (
+      restTab &&
       "request" in restTab.document &&
       restTab.document.request &&
       restTab.document.request.auth.authType === "oauth-2" &&
@@ -710,6 +711,7 @@ const setAccessTokenInActiveContext = (
     }
 
     if (
+      restTab &&
       refreshToken &&
       "request" in restTab.document &&
       restTab.document.request &&
@@ -721,6 +723,7 @@ const setAccessTokenInActiveContext = (
   } else {
     const gqlTab = gqlTabsService.currentActiveTab.value
     if (
+      gqlTab &&
       "request" in gqlTab.document &&
       gqlTab.document.request &&
       gqlTab.document.request.auth.authType === "oauth-2" &&
@@ -730,6 +733,7 @@ const setAccessTokenInActiveContext = (
     }
 
     if (
+      gqlTab &&
       refreshToken &&
       "request" in gqlTab.document &&
       gqlTab.document.request &&

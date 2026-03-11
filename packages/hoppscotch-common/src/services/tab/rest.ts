@@ -15,16 +15,6 @@ export class RESTTabService extends TabService<HoppTabDocument> {
   constructor(c: Container) {
     super(c)
 
-    this.tabMap.set("test", {
-      id: "test",
-      document: {
-        type: "request",
-        request: getDefaultRESTRequest(),
-        isDirty: false,
-        optionTabPreference: "params",
-      },
-    })
-
     this.watchCurrentTabID()
   }
 
@@ -105,5 +95,14 @@ export class RESTTabService extends TabService<HoppTabDocument> {
     }
 
     return count
+  }
+
+  protected createDefaultDocument(): HoppTabDocument {
+    return {
+      type: "request",
+      request: getDefaultRESTRequest(),
+      isDirty: false,
+      optionTabPreference: "params",
+    }
   }
 }

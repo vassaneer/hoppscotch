@@ -26,6 +26,39 @@
         :placeholder="t('action.search')"
       />
     </div>
+
+    <div
+      v-if="recentEndpoints.length > 0 && !filterTexts"
+      class="flex flex-col border-b border-divider"
+    >
+      <div
+        class="flex items-center px-4 py-2 font-semibold text-secondaryLight text-tiny uppercase tracking-widest"
+      >
+        <IconHistory class="svg-icons mr-2" />
+        {{ t("tab.recent") }}
+      </div>
+      <div
+        v-for="recent in recentEndpoints"
+        :key="recent.id"
+        class="flex flex-col"
+      >
+        <HoppSmartItem
+          :icon="recent.request.method === 'GET' ? IconChevronRight : IconPlus"
+          :label="recent.request.name || recent.request.endpoint"
+          @click="handleRecentClick(recent)"
+        >
+          <template #icon>
+            <span
+              class="font-bold text-[10px] w-12 text-center"
+              :class="`method-${recent.request.method.toLowerCase()}`"
+            >
+              {{ recent.request.method }}
+            </span>
+          </template>
+        </HoppSmartItem>
+      </div>
+    </div>
+
     <CollectionsMyCollections
       v-if="collectionsType.type === 'my-collections'"
       :collections-type="collectionsType"
@@ -291,6 +324,9 @@
 </template>
 
 <script setup lang="ts">
+import IconPlus from "~icons/lucide/plus"
+import IconChevronRight from "~icons/lucide/chevron-right"
+import IconHistory from "~icons/lucide/history"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import {
@@ -399,10 +435,49 @@ import { CurrentValueService } from "~/services/current-environment-value.servic
 import { TeamCollectionsService } from "~/services/team-collection.service"
 import { SortOptions } from "~/helpers/backend/graphql"
 import { CurrentSortValuesService } from "~/services/current-sort.service"
+import {
+  RecentEndpointsService,
+  RecentEndpoint,
+} from "~/services/recent-endpoints.service"
 
 const t = useI18n()
 const toast = useToast()
 const tabs = useService(RESTTabService)
+const recentEndpointsService = useService(RecentEndpointsService)
+const recentEndpoints = recentEndpointsService.recentEndpoints
+const handleRecentClick = (recent: RecentEndpoint) => {
+  tabs.setActiveTab(recent.id)
+
+  if (recent.saveContext) {
+    if (recent.saveContext.originLocation === "team-collection") {
+      const path = recent.saveContext.collectionID?.split("/")
+      path?.forEach((id) => {
+        teamCollectionService.expandCollection(id)
+      })
+    } else if (recent.saveContext.originLocation === "user-collection") {
+      // TODO: Implement user-collection sidebar navigation
+    }
+  }
+}
+
+watch(
+  () => tabs.currentActiveTab.value?.id,
+  (newTabID) => {
+    if (!newTabID) return
+    const tab = tabs.getTabRef(newTabID).value
+    if (tab && tab.document.type === "request" && tab.document.saveContext) {
+      const saveContext = tab.document.saveContext
+      if (saveContext.originLocation === "team-collection") {
+        const path = saveContext.collectionID?.split("/")
+        path?.forEach((id) => {
+          teamCollectionService.expandCollection(id)
+        })
+      } else if (saveContext.originLocation === "user-collection") {
+        // TODO: Implement user-collection sidebar navigation
+      }
+    }
+  }
+)
 
 const props = defineProps({
   saveRequest: {
@@ -541,6 +616,44 @@ watch(
     immediate: true,
   }
 )
+watch(
+  () => tabs.currentTabID.value,
+  (tabID) => {
+    if (!tabID) return
+    const tab = tabs.getTabRef(tabID).value
+    if (!tab || tab.document.type !== "request" || !tab.document.saveContext)
+      return
+
+    const { saveContext } = tab.document
+    if (saveContext.originLocation === "team-collection") {
+      if (collectionsType.value.type !== "team-collections") {
+        collectionsType.value = {
+          type: "team-collections",
+          selectedTeam: workspaceService.currentWorkspace.value.teamID
+            ? {
+                teamID: workspaceService.currentWorkspace.value.teamID,
+                teamName: workspaceService.currentWorkspace.value.teamName!,
+                type: "team",
+                role: workspaceService.currentWorkspace.value.role!,
+              }
+            : ({} as any),
+        }
+      }
+      // Expand team collection recursively
+      if (saveContext.collectionID) {
+        const path = saveContext.collectionID.split("/")
+        path.forEach((id) => {
+          teamCollectionService.expandCollection(id)
+        })
+      }
+    } else if (saveContext.originLocation === "user-collection") {
+      if (collectionsType.value.type !== "my-collections") {
+        switchToMyCollections()
+      }
+    }
+  }
+)
+
 const persistenceService = useService(PersistenceService)
 
 const collectionPropertiesModalActiveTab = ref<RESTOptionTabs>("headers")
@@ -603,6 +716,8 @@ const handleCollectionClick = (payload: {
   collectionID: string
   isOpen: boolean
 }) => {
+  teamCollectionService.toggleCollection(payload.collectionID, payload.isOpen)
+
   if (
     filterTexts.value.length > 0 &&
     teamsSearchResults.value.length &&

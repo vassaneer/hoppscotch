@@ -131,7 +131,7 @@ export class InspectionService extends Service {
     // Watch for tab changes and inspector registration to reinitialize
     // and create new debounced refs
     watch(
-      () => [this.inspectors.entries(), this.restTab.currentActiveTab.value.id],
+      () => [this.inspectors.entries(), this.restTab.currentActiveTab],
       () => {
         this.initializeListeners()
       },
@@ -158,20 +158,19 @@ export class InspectionService extends Service {
 
     this.effectScope.run(() => {
       const currentTabRequest = computed(() => {
-        if (this.restTab.currentActiveTab.value.document.type === "test-runner")
-          return null
+        const tab = this.restTab.currentActiveTab?.value
+        if (!tab || tab.document.type === "test-runner") return null
 
-        return this.restTab.currentActiveTab.value.document.type === "request"
-          ? this.restTab.currentActiveTab.value.document.request
-          : this.restTab.currentActiveTab.value.document.response
-              .originalRequest
+        return tab.document.type === "request"
+          ? tab.document.request
+          : tab.document.response.originalRequest
       })
 
       const currentTabResponse = computed(() => {
-        if (this.restTab.currentActiveTab.value.document.type === "request") {
-          return this.restTab.currentActiveTab.value.document.response
-        }
-        return null
+        const tab = this.restTab.currentActiveTab?.value
+        if (!tab || tab.document.type !== "request") return null
+
+        return tab.document.response
       })
 
       const debouncedReq = refDebounced(currentTabRequest, 1000, {
@@ -201,10 +200,10 @@ export class InspectionService extends Service {
       this.watcherStopHandle = watch(
         () => [...activeInspections.value],
         () => {
-          this.tabs.value.set(
-            this.restTab.currentActiveTab.value.id,
-            activeInspections.value
-          )
+          const tab = this.restTab.currentActiveTab?.value
+          if (tab) {
+            this.tabs.value.set(tab.id, activeInspections.value)
+          }
         },
         { immediate: true, flush: "pre" }
       )

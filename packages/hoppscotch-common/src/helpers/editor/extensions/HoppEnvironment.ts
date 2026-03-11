@@ -236,12 +236,12 @@ const cursorTooltipField = (aggregateEnvs: AggregateEnvironment[]) =>
             invokeActionType = "modals.my.environment.edit"
           }
 
+          const tab = restTabs.currentActiveTab.value
           if (
             tooltipEnv?.sourceEnv === "RequestVariable" &&
-            restTabs.currentActiveTab.value.document.type === "request"
+            tab?.document.type === "request"
           ) {
-            restTabs.currentActiveTab.value.document.optionTabPreference =
-              "requestVariables"
+            tab.document.optionTabPreference = "requestVariables"
           } else {
             invokeAction(invokeActionType, {
               envName: tooltipEnv?.sourceEnv === "Global" ? "Global" : envName,
@@ -406,6 +406,17 @@ export class HoppEnvironmentPlugin {
     watch(
       () => restTabs.currentActiveTab.value,
       (currentTab) => {
+        if (!currentTab) {
+          this.envs = getAggregateEnvsWithCurrentValue()
+          this.editorView.value?.dispatch({
+            effects: this.compartment.reconfigure([
+              cursorTooltipField(this.envs),
+              environmentHighlightStyle(this.envs),
+            ]),
+          })
+          return
+        }
+
         const request =
           currentTab.document.type === "example-response"
             ? currentTab.document.response.originalRequest
@@ -446,6 +457,17 @@ export class HoppEnvironmentPlugin {
     subscribeToStream(aggregateEnvsWithCurrentValue$, (envs) => {
       // Recompute request and collection variables from current tab to avoid stale closure values
       const tab = restTabs.currentActiveTab.value
+      if (!tab) {
+        this.envs = envs
+        this.editorView.value?.dispatch({
+          effects: this.compartment.reconfigure([
+            cursorTooltipField(this.envs),
+            environmentHighlightStyle(this.envs),
+          ]),
+        })
+        return
+      }
+
       const request =
         tab.document.type === "example-response"
           ? tab.document.response.originalRequest

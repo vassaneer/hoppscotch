@@ -598,6 +598,8 @@
     "endpoint": "Endpoint cannot be empty",
     "environments": "Environments are empty",
     "collection_variables": "Collection variables are empty",
+    "rest": "No open REST endpoints. Click the button below to create one.",
+    "graphql": "No open GraphQL endpoints. Click the button below to create one.",
     "folder": "Folder is empty",
     "headers": "This request does not have any headers",
     "history": "History is empty",

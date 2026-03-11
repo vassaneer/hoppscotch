@@ -4,7 +4,6 @@ import { v4 as uuidV4 } from "uuid"
 import {
   ComputedRef,
   computed,
-  nextTick,
   reactive,
   ref,
   shallowReadonly,
@@ -24,20 +23,20 @@ export abstract class TabService<Doc>
     string,
     HoppTab<Doc>
   > // TODO: The implicit cast is necessary as the reactive unwraps the inner types, creating weird type errors, this needs to be refactored and removed
-  protected tabOrdering = ref<string[]>(["test"])
+  protected tabOrdering = ref<string[]>([])
   protected recentlyClosedTabs: Array<{ tab: HoppTab<Doc>; index: number }> = []
   protected readonly MAX_CLOSED_TABS_HISTORY = 10
 
   // MRU (Most Recently Used) tracking
   // mruOrder[0] is the most recently used tab, mruOrder[n-1] is the least recently used
-  protected mruOrder: string[] = ["test"]
+  protected mruOrder: string[] = []
   // Navigation index for cycling through MRU list while modifier key is held
   // -1 means not currently navigating, 0+ means current position in mruOrder
   protected mruNavigationIndex: number = -1
 
-  public currentTabID = refWithControl("test", {
+  public currentTabID = refWithControl<string | null>(null, {
     onBeforeChange: (newTabID) => {
-      if (!newTabID || !this.tabMap.has(newTabID)) {
+      if (newTabID && !this.tabMap.has(newTabID)) {
         console.warn(
           `Tried to set current tab id to an invalid value. (value: ${newTabID})`
         )
@@ -48,9 +47,11 @@ export abstract class TabService<Doc>
     },
   })
 
-  public currentActiveTab = computed(
-    () => this.tabMap.get(this.currentTabID.value)!
-  ) // Guaranteed to not be undefined
+  public currentActiveTab = computed(() => {
+    if (!this.currentTabID.value) return null
+    const tab = this.tabMap.get(this.currentTabID.value)
+    return tab || null
+  })
 
   protected watchCurrentTabID() {
     watch(
@@ -60,7 +61,11 @@ export abstract class TabService<Doc>
           !this.currentTabID.value ||
           !newOrdering.includes(this.currentTabID.value)
         ) {
-          this.setActiveTab(newOrdering[newOrdering.length - 1]) // newOrdering should always be non-empty
+          if (newOrdering.length > 0) {
+            this.setActiveTab(newOrdering[newOrdering.length - 1])
+          } else {
+            this.currentTabID.value = null
+          }
         }
       },
       { deep: true }
@@ -75,6 +80,13 @@ export abstract class TabService<Doc>
   }
 
   protected abstract loadPersistedState(): Promise<PersistableTabState<Doc> | null>
+
+  /**
+   * Creates a default document for a new tab when the last tab is closed.
+   * Must be implemented by subclasses to provide the appropriate default
+   * document type.
+   */
+  protected abstract createDefaultDocument(): Doc
 
   public createNewTab(document: Doc, switchToIt = true): HoppTab<Doc> {
     const id = this.generateNewTabID()
@@ -98,12 +110,16 @@ export abstract class TabService<Doc>
   }
 
   public getActiveTab(): HoppTab<Doc> | null {
-    return this.tabMap.get(this.currentTabID.value) ?? null
+    return this.currentTabID.value
+      ? (this.tabMap.get(this.currentTabID.value) ?? null)
+      : null
   }
 
-  public setActiveTab(tabID: string): void {
+  public setActiveTab(tabID: string | null): void {
     this.currentTabID.value = tabID
-    this.updateMRUOrder(tabID)
+    if (tabID) {
+      this.updateMRUOrder(tabID)
+    }
   }
 
   private updateMRUOrder(tabID: string): void {
@@ -135,7 +151,18 @@ export abstract class TabService<Doc>
         this.mruOrder.push(doc.tabID)
       }
 
-      this.setActiveTab(data.lastActiveTabID)
+      // Ensure at least one tab exists
+      // if (this.tabOrdering.value.length === 0) {
+      //   this.createNewTab(this.createDefaultDocument())
+      // } else if (
+      //   data.lastActiveTabID &&
+      //   this.tabMap.has(data.lastActiveTabID)
+      // ) {
+      //   this.setActiveTab(data.lastActiveTabID)
+      // } else {
+      //   // Set the first tab as active if the saved one doesn't exist
+      //   this.setActiveTab(this.tabOrdering.value[0])
+      // }
     }
   }
 
@@ -188,15 +215,14 @@ export abstract class TabService<Doc>
       return
     }
 
-    if (this.tabOrdering.value.length === 1) {
-      console.warn(
-        `Tried to close the only tab open, which is not allowed. (tab id: ${tabID})`
-      )
-      return
-    }
-
     const tabIndex = this.tabOrdering.value.indexOf(tabID)
     const tab = this.tabMap.get(tabID)!
+
+    // If this is the last tab, create a new default tab first
+    // The new tab will be set as active immediately
+    // if (this.tabOrdering.value.length === 1) {
+    //   this.createNewTab(this.createDefaultDocument())
+    // }
 
     this.addToRecentlyClosedTabs(tab, tabIndex)
 
@@ -210,9 +236,9 @@ export abstract class TabService<Doc>
 
     this.tabOrdering.value.splice(tabIndex, 1)
 
-    nextTick(() => {
-      this.tabMap.delete(tabID)
-    })
+    // Remove the tab from the map after the ordering has been updated
+    // This ensures currentActiveTab will find the new active tab
+    this.tabMap.delete(tabID)
   }
 
   public closeOtherTabs(tabID: string) {
@@ -235,6 +261,7 @@ export abstract class TabService<Doc>
   }
 
   public goToNextTab(): void {
+    if (!this.currentTabID.value) return
     const currentIndex = this.tabOrdering.value.indexOf(this.currentTabID.value)
     const nextIndex = (currentIndex + 1) % this.tabOrdering.value.length
     const nextTabID = this.tabOrdering.value[nextIndex]
@@ -242,6 +269,7 @@ export abstract class TabService<Doc>
   }
 
   public goToPreviousTab(): void {
+    if (!this.currentTabID.value) return
     const currentIndex = this.tabOrdering.value.indexOf(this.currentTabID.value)
     const prevIndex =
       currentIndex === 0 ? this.tabOrdering.value.length - 1 : currentIndex - 1

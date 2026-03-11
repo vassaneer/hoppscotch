@@ -16,16 +16,6 @@ export class GQLTabService extends TabService<HoppGQLDocument> {
   constructor(c: Container) {
     super(c)
 
-    this.tabMap.set("test", {
-      id: "test",
-      document: {
-        request: getDefaultGQLRequest(),
-        isDirty: false,
-        optionTabPreference: "query",
-        cursorPosition: 0,
-      },
-    })
-
     this.watchCurrentTabID()
   }
 
@@ -77,5 +67,14 @@ export class GQLTabService extends TabService<HoppGQLDocument> {
     }
 
     return count
+  }
+
+  protected createDefaultDocument(): HoppGQLDocument {
+    return {
+      request: getDefaultGQLRequest(),
+      isDirty: false,
+      optionTabPreference: "query",
+      cursorPosition: 0,
+    }
   }
 }

@@ -767,8 +767,8 @@ const isSelected = ({
 const tabs = useService(RESTTabService)
 const active = computed(
   () =>
-    tabs.currentActiveTab.value.document.type !== "test-runner" &&
-    tabs.currentActiveTab.value.document.saveContext
+    tabs.currentActiveTab.value?.document.type !== "test-runner" &&
+    tabs.currentActiveTab.value?.document.saveContext
 )
 
 const isActiveRequest = (folderPath: string, requestRefID: string) => {

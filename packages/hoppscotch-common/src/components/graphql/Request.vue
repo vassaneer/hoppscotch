@@ -86,7 +86,9 @@ const connected = computed(() => connection.state === "CONNECTED")
 const url = computed({
   get: () => tabs.currentActiveTab.value?.document.request.url ?? "",
   set: (value) => {
-    tabs.currentActiveTab.value!.document.request.url = value
+    if (tabs.currentActiveTab.value) {
+      tabs.currentActiveTab.value.document.request.url = value
+    }
   },
 })
 
@@ -99,6 +101,8 @@ const onConnectClick = () => {
 }
 
 const gqlConnect = () => {
+  if (!tabs.currentActiveTab.value) return
+
   const inheritedHeaders =
     tabs.currentActiveTab.value.document.inheritedProperties?.headers.map(
       (header) => {

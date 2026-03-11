@@ -12,7 +12,7 @@ export type HoppTab<Doc> = {
 }
 
 export type PersistableTabState<Doc> = {
-  lastActiveTabID: string
+  lastActiveTabID: string | null
   orderedDocs: Array<{
     tabID: string
     doc: Doc
@@ -26,8 +26,9 @@ export type PersistableTabState<Doc> = {
 export interface TabService<Doc> {
   /**
    * Gets the current active tab.
+   * Can be null if no tabs are open.
    */
-  currentActiveTab: ComputedRef<HoppTab<Doc>>
+  currentActiveTab: ComputedRef<HoppTab<Doc> | null>
 
   /**
    * Creates a new tab with the given document and sets it as the active tab.

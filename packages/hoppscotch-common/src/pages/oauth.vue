@@ -117,8 +117,9 @@ onMounted(async () => {
   const tabService = source === "GraphQL" ? gqlTabs : restTabs
 
   if (
+    tabService.currentActiveTab.value &&
     tabService.currentActiveTab.value.document.request.auth.authType ===
-    "oauth-2"
+      "oauth-2"
   ) {
     tabService.currentActiveTab.value.document.request.auth.grantTypeInfo.token =
       tokenInfo.right.access_token

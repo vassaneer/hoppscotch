@@ -119,7 +119,7 @@ const request = useVModel(props, "modelValue", emit)
 
 const url = computedWithControl(
   () => tabs.currentActiveTab.value,
-  () => tabs.currentActiveTab.value.document.request.url
+  () => tabs.currentActiveTab.value?.document.request.url ?? ""
 )
 
 const activeGQLHeadersCount = computed(
@@ -132,6 +132,8 @@ const showSaveRequestModal = ref(false)
 const runQuery = async (
   definition: gql.OperationDefinitionNode | null = null
 ) => {
+  if (!tabs.currentActiveTab.value) return
+
   const startTime = Date.now()
   startPageProgress()
   try {
@@ -224,6 +226,8 @@ watch(
 )
 
 const updateCursorPos = (pos: number) => {
+  if (!tabs.currentActiveTab.value) return
+
   tabs.currentActiveTab.value.document.cursorPosition = pos
 }
 
@@ -231,6 +235,8 @@ const hideRequestModal = () => {
   showSaveRequestModal.value = false
 }
 const saveRequest = () => {
+  if (!tabs.currentActiveTab.value) return
+
   if (
     tabs.currentActiveTab.value.document.saveContext &&
     tabs.currentActiveTab.value.document.saveContext.originLocation ===

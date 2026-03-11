@@ -182,7 +182,7 @@ const response = computed(() => {
   let response = ""
   const pageCategory = getCurrentPageCategory()
 
-  if (pageCategory === "rest") {
+  if (pageCategory === "rest" && restTabs.currentActiveTab.value) {
     const doc = restTabs.currentActiveTab.value.document
     if (doc.type === "request") {
       const res = doc.response
@@ -200,7 +200,7 @@ const response = computed(() => {
     }
   }
 
-  if (pageCategory === "graphql") {
+  if (pageCategory === "graphql" && gqlTabs.currentActiveTab.value) {
     const res = gqlTabs.currentActiveTab.value.document.response
     if (res && res.length === 1 && res[0].type === "response" && res[0].data) {
       response = JSON.stringify(JSON.parse(res[0].data), null, 2)

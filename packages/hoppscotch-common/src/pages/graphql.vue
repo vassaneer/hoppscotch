@@ -2,7 +2,7 @@
   <div>
     <AppPaneLayout layout-id="graphql">
       <template #primary>
-        <GraphqlRequest />
+        <GraphqlRequest v-if="currentTabID" />
 
         <HoppSmartWindows
           v-if="currentTabID"
@@ -18,13 +18,13 @@
             :id="tab.id"
             :key="'removable_tab_' + tab.id"
             :label="tab.document.request.name"
-            :is-removable="activeTabs.length > 1"
+            :is-removable="true"
             :close-visibility="'hover'"
           >
             <template #tabhead>
               <GraphqlTabHead
                 :tab="tab"
-                :is-removable="activeTabs.length > 1"
+                :is-removable="true"
                 @open-rename-modal="openReqRenameModal(tab)"
                 @close-tab="removeTab(tab.id)"
                 @close-other-tabs="closeOtherTabsAction(tab.id)"
@@ -54,6 +54,14 @@
             />
           </HoppSmartWindow>
         </HoppSmartWindows>
+        <div
+          v-else
+          class="flex flex-1 flex-col items-center justify-center text-secondaryLight"
+        >
+          <icon-lucide-layers class="svg-icons mb-4 h-16 w-16" />
+          <h2 class="mb-4 text-lg font-semibold">{{ t("empty.graphql") }}</h2>
+          <HoppButtonPrimary :label="t('action.new_tab')" @click="addNewTab" />
+        </div>
       </template>
       <template #sidebar>
         <GraphqlSidebar />
@@ -234,7 +242,10 @@ defineActionHandler("gql.request.open", ({ request, saveContext }) => {
 })
 
 defineActionHandler("request.rename", () => {
-  openReqRenameModal(tabs.getTabRef(currentTabID.value).value!)
+  if (currentTabID.value) {
+    const tab = tabs.getTabRef(currentTabID.value).value
+    if (tab) openReqRenameModal(tab)
+  }
 })
 
 defineActionHandler("tab.duplicate-tab", ({ tabID }) => {

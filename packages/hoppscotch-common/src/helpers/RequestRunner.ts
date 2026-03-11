@@ -36,6 +36,7 @@ import {
   getEnvironment,
   getGlobalVariables,
   SelectedEnvironmentIndex,
+  setSelectedEnvironmentIndex,
   setGlobalEnvVariables,
   updateEnvironment,
 } from "~/newstore/environments"
@@ -710,6 +711,16 @@ function updateEnvsAfterTestScript(
     // Use the initial environment name to avoid issues when environment changes during request execution
     // adding a fallback to current environment name just in case so it's not null
     const envName = initialEnvName ?? getCurrentEnvironment().name
+
+    // Update local store immediately to ensure sudden UI updates
+    setSelectedEnvironmentIndex({
+      ...initialEnvironmentIndex,
+      environment: {
+        ...initialEnvironmentIndex.environment,
+        variables: selectedEnvVariables,
+      },
+    })
+
     pipe(
       updateTeamEnvironment(
         JSON.stringify(selectedEnvVariables),

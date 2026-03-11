@@ -147,7 +147,11 @@ const handleImport = () => {
       type: "HOPP_REST_IMPORT_CURL",
     })
 
-    if (tabs.currentActiveTab.value.document.type === "example-response") return
+    if (
+      !tabs.currentActiveTab.value ||
+      tabs.currentActiveTab.value.document.type === "example-response"
+    )
+      return
 
     // Preserve the existing request name when importing cURL
     const currentRequest = tabs.currentActiveTab.value.document.request

@@ -19,6 +19,7 @@ import {
   TeamRequest,
   getCollectionChildCollections,
 } from "./TeamRequest"
+import { TeamCollectionsService } from "~/services/team-collection.service"
 
 type CollectionSearchMeta = {
   isSearchResult?: boolean
@@ -178,6 +179,8 @@ function convertToTeamTree(
 export class TeamSearchService extends Service {
   public static readonly ID = "TeamSearchService"
 
+  private teamCollectionsService = this.bind(TeamCollectionsService)
+
   public endpoint = import.meta.env.VITE_BACKEND_API_URL
 
   public teamsSearchResultsLoading = ref(false)
@@ -199,6 +202,69 @@ export class TeamSearchService extends Service {
   expandingCollections: Ref<string[]> = ref([])
   expandedCollections: Ref<string[]> = ref([])
 
+  searchLocal = (query: string) => {
+    const collections = this.teamCollectionsService.collections.value
+    const searchResults: CollectionSearchNode[] = []
+
+    const traverse = (
+      colls: TeamCollection[],
+      path: CollectionSearchNode[]
+    ) => {
+      colls.forEach((col) => {
+        const currentPathNode: CollectionSearchNode = {
+          type: "collection",
+          id: col.id,
+          title: col.title,
+          path: path,
+        }
+
+        const fullPath = [currentPathNode, ...path]
+
+        if (col.title.toLowerCase().includes(query.toLowerCase())) {
+          searchResults.push(currentPathNode)
+        }
+
+        if (col.requests) {
+          col.requests.forEach((req) => {
+            if (req.title.toLowerCase().includes(query.toLowerCase())) {
+              searchResults.push({
+                type: "request",
+                id: req.id,
+                title: req.title,
+                method: req.request.method,
+                path: fullPath,
+              })
+            }
+          })
+        }
+
+        if (col.children) {
+          traverse(col.children, fullPath)
+        }
+      })
+    }
+
+    traverse(collections, [])
+
+    const localCollections: Record<string, _SearchCollection> = {}
+    const localRequests: Record<string, _SearchRequest> = {}
+
+    searchResults.forEach((node) => {
+      convertToTeamCollection(
+        {
+          ...node,
+          meta: {
+            isSearchResult: true,
+          },
+        },
+        localCollections,
+        localRequests
+      )
+    })
+
+    return { localCollections, localRequests }
+  }
+
   // TODO: ideally this should return the search results / formatted results instead of directly manipulating the result set
   // eg: do the spotlight formatting in the spotlight searcher and not here
   searchTeams = async (query: string, teamID: string) => {
@@ -211,6 +277,18 @@ export class TeamSearchService extends Service {
     this.searchResultsCollections = {}
     this.searchResultsRequests = {}
     this.expandedCollections.value = []
+
+    // 1. Search Local
+    const { localCollections, localRequests } = this.searchLocal(query)
+    this.searchResultsCollections = { ...localCollections }
+    this.searchResultsRequests = { ...localRequests }
+
+    const localCollectionTree = convertToTeamTree(
+      Object.values(this.searchResultsCollections),
+      Object.values(this.searchResultsRequests) as TeamRequest[]
+    )
+
+    this.teamsSearchResults.value = localCollectionTree
 
     const getAxiosPlatformConfig = async () => {
       await platform.auth.waitProbableLoginToConfirm()

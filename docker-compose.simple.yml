@@ -1,0 +1,70 @@
+# Simple docker-compose without profiles
+# This version uses host networking to avoid iptables issues
+
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15
+    container_name: hoppscotch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: hoppscotch
+    # Use host networking to avoid iptables issues
+    network_mode: host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hoppscotch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Auto-migration service
+  migrate:
+    build:
+      context: .
+      dockerfile: prod.Dockerfile
+      target: backend
+    container_name: hoppscotch-migrate
+    network_mode: host
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:testpass@localhost:5432/hoppscotch
+    command: sh -c "pnpm exec prisma migrate deploy"
+
+  # All-in-one Hoppscotch service (backend + frontend + admin)
+  app:
+    build:
+      context: .
+      dockerfile: prod.Dockerfile
+      target: aio
+    container_name: hoppscotch-app
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    # Use host networking
+    network_mode: host
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      # Override database URL for host networking
+      DATABASE_URL: postgresql://postgres:testpass@localhost:5432/hoppscotch
+      # Internal ports (since using host network)
+      PORT: 8080
+      VITE_BASE_URL: http://localhost:3000
+      VITE_ADMIN_URL: http://localhost:3100
+      VITE_BACKEND_GQL_URL: http://localhost:3170/graphql
+      VITE_BACKEND_WS_URL: ws://localhost:3170/graphql
+      VITE_BACKEND_API_URL: http://localhost:3170/v1
+
+volumes:
+  postgres_data:

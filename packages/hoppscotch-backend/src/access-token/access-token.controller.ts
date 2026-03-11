@@ -23,6 +23,7 @@ import { PATAuthGuard } from 'src/guards/rest-pat-auth.guard';
 import { AccessTokenInterceptor } from 'src/interceptors/access-token.interceptor';
 import { TeamEnvironmentsService } from 'src/team-environments/team-environments.service';
 import { TeamCollectionService } from 'src/team-collection/team-collection.service';
+import { TeamService } from 'src/team/team.service';
 import { ACCESS_TOKENS_INVALID_DATA_ID } from 'src/errors';
 import { createCLIErrorResponse } from './helper';
 
@@ -33,6 +34,7 @@ export class AccessTokenController {
     private readonly accessTokenService: AccessTokenService,
     private readonly teamCollectionService: TeamCollectionService,
     private readonly teamEnvironmentsService: TeamEnvironmentsService,
+    private readonly teamService: TeamService,
   ) {}
 
   @Post('create')
@@ -108,5 +110,76 @@ export class AccessTokenController {
         createCLIErrorResponse(ACCESS_TOKENS_INVALID_DATA_ID),
       );
     return res.right;
+  }
+
+  @Get('collections/:teamId')
+  @UseGuards(PATAuthGuard)
+  @UseInterceptors(AccessTokenInterceptor)
+  async listCollections(
+    @GqlUser() user: AuthUser,
+    @Param('teamId') teamId: string,
+  ) {
+    const teamMember = await this.teamService.getTeamMember(
+      teamId,
+      user.uid,
+    );
+    if (!teamMember)
+      throw new BadRequestException(
+        createCLIErrorResponse(ACCESS_TOKENS_INVALID_DATA_ID),
+      );
+
+    const collections =
+      await this.teamCollectionService.getTeamRootCollections(
+        teamId,
+        null,
+        100,
+      );
+
+    return collections;
+  }
+
+  @Get('environments/:teamId')
+  @UseGuards(PATAuthGuard)
+  @UseInterceptors(AccessTokenInterceptor)
+  async listEnvironments(
+    @GqlUser() user: AuthUser,
+    @Param('teamId') teamId: string,
+  ) {
+    const teamMember = await this.teamService.getTeamMember(
+      teamId,
+      user.uid,
+    );
+    if (!teamMember)
+      throw new BadRequestException(
+        createCLIErrorResponse(ACCESS_TOKENS_INVALID_DATA_ID),
+      );
+
+    const environments =
+      await this.teamEnvironmentsService.fetchAllTeamEnvironments(teamId);
+
+    return environments;
+  }
+
+  @Get('collection/:id/folders')
+  @UseGuards(PATAuthGuard)
+  @UseInterceptors(AccessTokenInterceptor)
+  async listFolders(
+    @GqlUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    const res = await this.teamCollectionService.getCollectionForCLI(
+      id,
+      user.uid,
+    );
+
+    if (E.isLeft(res))
+      throw new BadRequestException(
+        createCLIErrorResponse(ACCESS_TOKENS_INVALID_DATA_ID),
+      );
+
+    const folders =
+      await this.teamCollectionService.getChildrenOfCollection(id, null, 100);
+
+    return folders;
   }
 }
