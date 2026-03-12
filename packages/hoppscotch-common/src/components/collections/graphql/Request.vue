@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col" :class="[{ 'bg-primaryLight': dragging }]">
     <div
+      ref="el"
       class="group flex items-stretch"
       draggable="true"
       @dragstart="dragStart"
@@ -134,7 +135,7 @@ import IconMoreVertical from "~icons/lucide/more-vertical"
 import IconEdit from "~icons/lucide/edit"
 import IconCopy from "~icons/lucide/copy"
 import IconTrash2 from "~icons/lucide/trash-2"
-import { PropType, computed, ref } from "vue"
+import { PropType, computed, ref, watch, onMounted, nextTick } from "vue"
 import { useI18n } from "@composables/i18n"
 import { useToast } from "@composables/toast"
 import { HoppGQLRequest } from "@hoppscotch/data"
@@ -142,6 +143,8 @@ import { removeGraphqlRequest } from "~/newstore/collections"
 import { handleTokenValidation } from "~/helpers/handleTokenValidation"
 import { useService } from "dioc/vue"
 import { GQLTabService } from "~/services/tab/graphql"
+
+const el = ref<HTMLElement>()
 
 // Template refs
 const tippyActions = ref<any | null>(null)
@@ -175,6 +178,44 @@ const isActive = computed(() => {
     saveCtx.folderPath === props.folderPath &&
     saveCtx.requestIndex === props.requestIndex
   )
+})
+
+watch(
+  () => isActive.value,
+  async (active) => {
+    if (active) {
+      await nextTick()
+      await nextTick()
+      el.value?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "nearest",
+      })
+    }
+  }
+)
+
+onMounted(async () => {
+  if (isActive.value) {
+    await nextTick()
+    await nextTick()
+    el.value?.scrollIntoView({
+      behavior: "auto",
+      block: "nearest",
+      inline: "nearest",
+    })
+
+    // On page refresh, layout might still be shifting
+    setTimeout(() => {
+      if (isActive.value) {
+        el.value?.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "nearest",
+        })
+      }
+    }, 300)
+  }
 })
 
 // TODO: Better types please

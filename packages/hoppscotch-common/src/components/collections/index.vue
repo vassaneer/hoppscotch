@@ -626,15 +626,28 @@ watch(
 
     const { saveContext } = tab.document
     if (saveContext.originLocation === "team-collection") {
-      if (collectionsType.value.type !== "team-collections") {
+      if (
+        collectionsType.value.type !== "team-collections" ||
+        (saveContext.teamID &&
+          collectionsType.value.selectedTeam?.teamID !== saveContext.teamID)
+      ) {
+        const teamID =
+          saveContext.teamID ?? workspaceService.currentWorkspace.value.teamID
+
         collectionsType.value = {
           type: "team-collections",
-          selectedTeam: workspaceService.currentWorkspace.value.teamID
+          selectedTeam: teamID
             ? {
-                teamID: workspaceService.currentWorkspace.value.teamID,
-                teamName: workspaceService.currentWorkspace.value.teamName!,
+                teamID: teamID,
+                teamName:
+                  workspaceService.currentWorkspace.value.teamID === teamID
+                    ? workspaceService.currentWorkspace.value.teamName!
+                    : "",
                 type: "team",
-                role: workspaceService.currentWorkspace.value.role!,
+                role:
+                  workspaceService.currentWorkspace.value.teamID === teamID
+                    ? workspaceService.currentWorkspace.value.role!
+                    : (null as any),
               }
             : ({} as any),
         }
@@ -651,6 +664,9 @@ watch(
         switchToMyCollections()
       }
     }
+  },
+  {
+    immediate: true,
   }
 )
 

@@ -247,7 +247,7 @@ import { useColorMode } from "@composables/theming"
 import { useToast } from "@composables/toast"
 import { HoppCollection } from "@hoppscotch/data"
 import { useService } from "dioc/vue"
-import { computed, ref } from "vue"
+import { computed, nextTick, ref, watch } from "vue"
 import { Picked } from "~/helpers/types/HoppPicked"
 import { removeGraphqlCollection } from "~/newstore/collections"
 import { handleTokenValidation } from "~/helpers/handleTokenValidation"
@@ -324,6 +324,43 @@ const deleteAction = ref<any | null>(null)
 const propertiesAction = ref<any | null>(null)
 
 const showChildren = ref(false)
+
+const shouldExpand = computed(() => {
+  const saveCtx = tabs.currentActiveTab.value?.document.saveContext
+  if (!saveCtx || saveCtx.originLocation !== "user-collection") return false
+
+  return (
+    saveCtx.folderPath === props.collectionIndex?.toString() ||
+    saveCtx.folderPath.startsWith(`${props.collectionIndex}/`)
+  )
+})
+
+watch(
+  shouldExpand,
+  async (expand) => {
+    if (expand) {
+      await nextTick()
+      showChildren.value = true
+
+      setTimeout(() => {
+        if (shouldExpand.value) showChildren.value = true
+      }, 100)
+    }
+  },
+  { immediate: true }
+)
+
+watch(showChildren, async (open) => {
+  if (!open && shouldExpand.value) {
+    await nextTick()
+    showChildren.value = true
+
+    setTimeout(() => {
+      if (shouldExpand.value) showChildren.value = true
+    }, 100)
+  }
+})
+
 const dragging = ref(false)
 
 const confirmRemove = ref(false)

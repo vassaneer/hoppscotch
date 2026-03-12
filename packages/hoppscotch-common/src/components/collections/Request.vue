@@ -13,6 +13,7 @@
       @dragend="resetDragState"
     ></div>
     <div
+      ref="el"
       class="group flex items-center"
       :draggable="!hasNoTeamAccess"
       @drop="handelDrop"
@@ -245,7 +246,7 @@ import IconArrowRight from "~icons/lucide/chevron-right"
 import IconArrowDown from "~icons/lucide/chevron-down"
 import IconBook from "~icons/lucide/book"
 import IconPlusCircle from "~icons/lucide/plus-circle"
-import { ref, PropType, watch, computed } from "vue"
+import { ref, PropType, watch, computed, onMounted, nextTick } from "vue"
 import { HoppRESTRequest } from "@hoppscotch/data"
 import { useI18n } from "@composables/i18n"
 import { useDocumentationVisibility } from "~/composables/documentationVisibility"
@@ -261,7 +262,7 @@ import { invokeAction } from "~/helpers/actions"
 
 type CollectionType = "my-collections" | "team-collections"
 
-const t = useI18n()
+const el = ref<HTMLElement>()
 
 const props = defineProps({
   request: {
@@ -319,6 +320,46 @@ const props = defineProps({
     default: false,
     required: false,
   },
+})
+
+const t = useI18n()
+
+watch(
+  () => props.isActive,
+  async (active) => {
+    if (active) {
+      await nextTick()
+      await nextTick()
+      el.value?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "nearest",
+      })
+    }
+  }
+)
+
+onMounted(async () => {
+  if (props.isActive) {
+    await nextTick()
+    await nextTick()
+    el.value?.scrollIntoView({
+      behavior: "auto",
+      block: "nearest",
+      inline: "nearest",
+    })
+
+    // On page refresh, layout might still be shifting
+    setTimeout(() => {
+      if (props.isActive) {
+        el.value?.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "nearest",
+        })
+      }
+    }, 300)
+  }
 })
 
 type ResponsePayload = {
