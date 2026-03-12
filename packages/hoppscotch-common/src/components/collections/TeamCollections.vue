@@ -68,7 +68,7 @@
           <CollectionsAutoExpandNode
             v-if="node.data.type !== 'requests'"
             :is-open="isOpen"
-            :should-expand="activeRequestPathPrefixes.has(node.id)"
+            :node-id="node.id"
             @expand="toggleChildren"
           />
           <CollectionsCollection
@@ -521,7 +521,7 @@ import IconHelpCircle from "~icons/lucide/help-circle"
 import IconImport from "~icons/lucide/folder-down"
 import IconArrowUpDown from "~icons/lucide/arrow-up-down"
 
-import { computed, PropType, ref, Ref, toRef } from "vue"
+import { computed, PropType, provide, ref, Ref, toRef } from "vue"
 import { useI18n } from "@composables/i18n"
 import { useColorMode } from "@composables/theming"
 import { TeamCollection } from "~/helpers/teams/TeamCollection"
@@ -534,6 +534,7 @@ import * as O from "fp-ts/Option"
 import { Picked } from "~/helpers/types/HoppPicked.js"
 import { RESTTabService } from "~/services/tab/rest"
 import { useService } from "dioc/vue"
+import { EXPAND_PREFIXES_KEY } from "./AutoExpandNode.vue"
 import { TeamWorkspace } from "~/services/workspace.service"
 import { useDebounceFn } from "@vueuse/core"
 import { CurrentSortValuesService } from "~/services/current-sort.service"
@@ -894,6 +895,8 @@ const activeRequestPathPrefixes = computed(() => {
   }
   return prefixes
 })
+
+provide(EXPAND_PREFIXES_KEY, activeRequestPathPrefixes)
 
 const isActiveRequest = (requestID: string) => {
   if (!active.value) return false

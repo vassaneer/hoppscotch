@@ -47,7 +47,7 @@
           <CollectionsAutoExpandNode
             v-if="node.data.type !== 'requests'"
             :is-open="isOpen"
-            :should-expand="activeRequestPathPrefixes.has(node.id)"
+            :node-id="node.id"
             @expand="toggleChildren"
           />
           <CollectionsCollection
@@ -466,7 +466,7 @@ import IconHelpCircle from "~icons/lucide/help-circle"
 import IconImport from "~icons/lucide/folder-down"
 import IconArrowUpDown from "~icons/lucide/arrow-up-down"
 import { HoppCollection, HoppRESTRequest } from "@hoppscotch/data"
-import { computed, PropType, ref, Ref, toRef } from "vue"
+import { computed, PropType, provide, ref, Ref, toRef } from "vue"
 import { GetMyTeamsQuery } from "~/helpers/backend/graphql"
 import { ChildrenResult, SmartTreeAdapter } from "@hoppscotch/ui/helpers"
 import { useI18n } from "@composables/i18n"
@@ -476,6 +476,7 @@ import * as O from "fp-ts/Option"
 import { Picked } from "~/helpers/types/HoppPicked.js"
 import { useService } from "dioc/vue"
 import { RESTTabService } from "~/services/tab/rest"
+import { EXPAND_PREFIXES_KEY } from "./AutoExpandNode.vue"
 import { useDebounceFn } from "@vueuse/core"
 import { CurrentSortValuesService } from "~/services/current-sort.service"
 
@@ -800,6 +801,10 @@ const activeRequestPathPrefixes = computed(() => {
   }
   return prefixes
 })
+
+// Provide the set directly so AutoExpandNode can inject it without
+// relying on prop propagation through deeply nested slot TreeBranch layers.
+provide(EXPAND_PREFIXES_KEY, activeRequestPathPrefixes)
 
 const isActiveRequest = (folderPath: string, requestRefID: string) => {
   if (active.value === null || !active.value) return false
