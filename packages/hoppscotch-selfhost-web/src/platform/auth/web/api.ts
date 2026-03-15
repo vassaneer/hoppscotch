@@ -43,3 +43,30 @@ export const updateUserDisplayName = (updatedDisplayName: string) =>
   >(UpdateUserDisplayNameDocument, {
     updatedDisplayName,
   })()
+
+export const updateUsername = async (username: string) => {
+  await axios.patch(
+    `${import.meta.env.VITE_BACKEND_API_URL}/auth/local/username`,
+    { username },
+    { withCredentials: true }
+  )
+}
+
+export const updateLocalPassword = async (
+  newPassword: string,
+  currentPassword?: string
+) => {
+  await axios.patch(
+    `${import.meta.env.VITE_BACKEND_API_URL}/auth/local/password`,
+    { newPassword, currentPassword },
+    { withCredentials: true }
+  )
+}
+
+export const localSignIn = async (username: string, password: string) => {
+  await axios.post(
+    `${import.meta.env.VITE_BACKEND_API_URL}/auth/local/signin`,
+    { username, password },
+    { withCredentials: true }
+  )
+}

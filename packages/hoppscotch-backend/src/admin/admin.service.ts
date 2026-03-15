@@ -17,6 +17,7 @@ import {
   USER_INVITATION_DELETION_FAILED,
   USER_IS_ADMIN,
   USER_NOT_FOUND,
+  USERNAME_ALREADY_EXISTS,
 } from '../errors';
 import { MailerService } from '../mailer/mailer.service';
 import { InvitedUser } from './invited-user.model';
@@ -679,5 +680,55 @@ export class AdminService {
 
     if (E.isLeft(result)) return E.left(result.left);
     return E.right(result.right);
+  }
+
+  /**
+   * Create a local user with username + email, then send a password-setup email.
+   * The user cannot log in until they follow the link and set their password.
+   *
+   * @param username Desired username (must be unique)
+   * @param email    Email address for the new account
+   * @returns Either of the created User or error string
+   */
+  async createLocalUser(username: string, email: string) {
+    if (!validateEmail(email)) return E.left(INVALID_EMAIL);
+
+    const existingByUsername = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingByUsername) return E.left(USERNAME_ALREADY_EXISTS);
+
+    const existingByEmail = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingByEmail) return E.left(INVALID_EMAIL);
+
+    const user = await this.prisma.user.create({
+      data: { username, email, displayName: username },
+    });
+
+    const validityHours = 48;
+    const expiresOn = new Date();
+    expiresOn.setHours(expiresOn.getHours() + validityHours);
+
+    const setupToken = await this.prisma.passwordSetupToken.create({
+      data: { userUid: user.uid, expiresOn },
+    });
+
+    const url = this.configService.get('VITE_BASE_URL');
+    try {
+      await this.mailerService.sendUserInvitationEmail(email, {
+        template: 'password-setup',
+        variables: {
+          username,
+          inviteeEmail: email,
+          setupLink: `${url}/set-password?token=${setupToken.token}`,
+        },
+      });
+    } catch {
+      // If email fails, still return the created user but don't block
+    }
+
+    return E.right(user);
   }
 }

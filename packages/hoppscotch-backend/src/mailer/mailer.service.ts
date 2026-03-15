@@ -2,6 +2,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import {
   AdminUserInvitationMailDescription,
   MailDescription,
+  PasswordSetupMailDescription,
   UserMagicLinkMailDescription,
 } from './MailDescriptions';
 import { throwErr } from 'src/utils';
@@ -25,7 +26,8 @@ export class MailerService {
     mailDesc:
       | MailDescription
       | UserMagicLinkMailDescription
-      | AdminUserInvitationMailDescription,
+      | AdminUserInvitationMailDescription
+      | PasswordSetupMailDescription,
   ): string {
     switch (mailDesc.template) {
       case 'team-invitation':
@@ -33,6 +35,9 @@ export class MailerService {
 
       case 'user-invitation':
         return 'Sign in to Hoppscotch';
+
+      case 'password-setup':
+        return 'Set up your Hoppscotch password';
     }
   }
 
@@ -44,7 +49,10 @@ export class MailerService {
    */
   async sendEmail(
     to: string,
-    mailDesc: MailDescription | UserMagicLinkMailDescription,
+    mailDesc:
+      | MailDescription
+      | UserMagicLinkMailDescription
+      | PasswordSetupMailDescription,
   ) {
     if (this.configService.get('INFRA.MAILER_SMTP_ENABLE') !== 'true') return;
 
@@ -69,7 +77,7 @@ export class MailerService {
    */
   async sendUserInvitationEmail(
     to: string,
-    mailDesc: AdminUserInvitationMailDescription,
+    mailDesc: AdminUserInvitationMailDescription | PasswordSetupMailDescription,
   ) {
     if (this.configService.get('INFRA.MAILER_SMTP_ENABLE') !== 'true') return;
 

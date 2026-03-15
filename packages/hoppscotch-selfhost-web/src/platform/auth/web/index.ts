@@ -11,7 +11,13 @@ import {
 } from "@hoppscotch/common/platform/auth"
 import { PersistenceService } from "@hoppscotch/common/services/persistence"
 
-import { getAllowedAuthProviders, updateUserDisplayName } from "./api"
+import {
+  getAllowedAuthProviders,
+  localSignIn,
+  updateLocalPassword,
+  updateUsername,
+  updateUserDisplayName,
+} from "./api"
 
 export const authEvents$ = new Subject<AuthEvent | { event: "token_refresh" }>()
 const currentUser$ = new BehaviorSubject<HoppUser | null>(null)
@@ -319,6 +325,19 @@ export const def: AuthPlatformDef = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async setEmailAddress(_email: string) {
     return
+  },
+
+  async signInWithLocal(username: string, password: string) {
+    await localSignIn(username, password)
+    await setInitialUser()
+  },
+
+  async setUsername(username: string) {
+    await updateUsername(username)
+  },
+
+  async setLocalPassword(newPassword: string, currentPassword?: string) {
+    await updateLocalPassword(newPassword, currentPassword)
   },
 
   async setDisplayName(name: string) {

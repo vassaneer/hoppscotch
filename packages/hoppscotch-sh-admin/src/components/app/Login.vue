@@ -51,6 +51,12 @@
           :label="t('state.continue_email')"
           @click="mode = 'email'"
         />
+        <HoppSmartItem
+          v-if="allowedAuthProviders.includes('LOCAL')"
+          :icon="IconEmail"
+          label="Sign in with Username"
+          @click="mode = 'local'"
+        />
       </div>
       <form
         v-if="mode === 'email' && allowedAuthProviders"
@@ -91,6 +97,32 @@
           </a>
         </div>
       </div>
+      <form
+        v-if="mode === 'local'"
+        class="flex flex-col space-y-4"
+        @submit.prevent="signInWithLocal"
+      >
+        <HoppSmartInput
+          v-model="form.username"
+          type="text"
+          placeholder=" "
+          input-styles="floating-input"
+          label="Username"
+        />
+        <HoppSmartInput
+          v-model="form.password"
+          type="password"
+          placeholder=" "
+          input-styles="floating-input"
+          label="Password"
+        />
+        <HoppButtonPrimary
+          :loading="signingInWithLocal"
+          type="submit"
+          label="Sign in"
+        />
+      </form>
+
       <div v-if="mode === 'email-sent'" class="flex flex-col px-4">
         <div class="flex flex-col items-center justify-center max-w-md">
           <icon-lucide-inbox class="w-6 h-6 text-accent" />
@@ -139,7 +171,7 @@
           :label="t('state.privacy_policy')"
         />
       </div>
-      <div v-if="mode === 'email'">
+      <div v-if="mode === 'email' || mode === 'local'">
         <HoppButtonSecondary
           :label="t('state.sign_in_options')"
           :icon="IconArrowLeft"
@@ -184,6 +216,8 @@ const privacyPolicyLink = import.meta.env.VITE_APP_PRIVACY_POLICY_LINK;
 
 const form = ref({
   email: '',
+  username: '',
+  password: '',
 });
 const fetching = ref(false);
 const error = ref(false);
@@ -191,6 +225,7 @@ const signingInWithGoogle = ref(false);
 const signingInWithGitHub = ref(false);
 const signingInWithMicrosoft = ref(false);
 const signingInWithEmail = ref(false);
+const signingInWithLocal = ref(false);
 const mode = ref('sign-in');
 const nonAdminUser = ref(false);
 
@@ -250,6 +285,18 @@ const signInWithMicrosoft = () => {
   }
 
   signingInWithMicrosoft.value = false;
+};
+
+const signInWithLocal = async () => {
+  signingInWithLocal.value = true;
+  try {
+    await auth.signInWithLocal(form.value.username, form.value.password);
+    window.location.href = import.meta.env.VITE_ADMIN_URL;
+  } catch (e) {
+    console.error(e);
+    toast.error('Invalid username or password');
+  }
+  signingInWithLocal.value = false;
 };
 
 const signInWithEmail = async () => {

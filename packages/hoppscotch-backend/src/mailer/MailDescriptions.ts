@@ -22,3 +22,12 @@ export type AdminUserInvitationMailDescription = {
     magicLink: string;
   };
 };
+
+export type PasswordSetupMailDescription = {
+  template: 'password-setup';
+  variables: {
+    username: string;
+    inviteeEmail: string;
+    setupLink: string;
+  };
+};

@@ -25,7 +25,7 @@ import {
 } from './input-types.args';
 import { GqlThrottlerGuard } from 'src/guards/gql-throttler.guard';
 import { SkipThrottle } from '@nestjs/throttler';
-import { UserDeletionResult } from 'src/user/user.model';
+import { User, UserDeletionResult } from 'src/user/user.model';
 
 @UseGuards(GqlThrottlerGuard)
 @Resolver(() => Admin)
@@ -365,6 +365,22 @@ export class AdminResolver {
     const isDeleted = await this.adminService.deleteAllUserHistory();
     if (E.isLeft(isDeleted)) throwErr(isDeleted.left);
     return true;
+  }
+
+  @Mutation(() => User, {
+    description:
+      'Create a local user account with username and email. An email with a password-setup link is sent to the user.',
+  })
+  @UseGuards(GqlAuthGuard, GqlAdminGuard)
+  async createLocalUser(
+    @Args({ name: 'username', description: 'Unique username for the account' })
+    username: string,
+    @Args({ name: 'email', description: 'Email address of the new user' })
+    email: string,
+  ): Promise<User> {
+    const result = await this.adminService.createLocalUser(username, email);
+    if (E.isLeft(result)) throwErr(result.left);
+    return result.right as unknown as User;
   }
 
   /* Subscriptions */

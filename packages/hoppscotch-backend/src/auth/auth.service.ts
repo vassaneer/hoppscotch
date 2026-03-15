@@ -15,6 +15,11 @@ import {
   MAGIC_LINK_EXPIRED,
   USER_NOT_FOUND,
   INVALID_REFRESH_TOKEN,
+  INVALID_LOCAL_CREDENTIALS,
+  PASSWORD_NOT_SET,
+  PASSWORD_SETUP_TOKEN_INVALID,
+  PASSWORD_SETUP_TOKEN_EXPIRED,
+  USERNAME_ALREADY_EXISTS,
 } from 'src/errors';
 import { validateEmail } from 'src/utils';
 import {
@@ -388,5 +393,189 @@ export class AuthService {
 
   getAuthProviders() {
     return this.infraConfigService.getAllowedAuthProviders();
+  }
+
+  async updateUsername(userUid: string, username: string) {
+    const existing = await this.prisma.user.findUnique({ where: { username } });
+    if (existing && existing.uid !== userUid)
+      return E.left(<RESTError>{
+        message: USERNAME_ALREADY_EXISTS,
+        statusCode: HttpStatus.CONFLICT,
+      });
+
+    await this.prisma.user.update({ where: { uid: userUid }, data: { username } });
+    return E.right(true);
+  }
+
+  async updatePassword(
+    userUid: string,
+    newPassword: string,
+    currentPassword?: string,
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { uid: userUid } });
+
+    if (user.passwordHash) {
+      if (!currentPassword)
+        return E.left(<RESTError>{
+          message: INVALID_LOCAL_CREDENTIALS,
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      const isMatch = await argon2.verify(user.passwordHash, currentPassword);
+      if (!isMatch)
+        return E.left(<RESTError>{
+          message: INVALID_LOCAL_CREDENTIALS,
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+    await this.prisma.user.update({ where: { uid: userUid }, data: { passwordHash } });
+    return E.right(true);
+  }
+
+  /**
+   * Generate a one-time password setup token and send it to the user's email.
+   * Used by admins when creating a local user account.
+   *
+   * @param userUid  UID of the user who should set their password
+   * @param email    Email address to send the setup link to
+   * @param username Username chosen for the account
+   */
+  async sendPasswordSetupEmail(
+    userUid: string,
+    email: string,
+    username: string,
+  ) {
+    const validityHours = 48;
+    const expiresOn = new Date();
+    expiresOn.setHours(expiresOn.getHours() + validityHours);
+
+    const setupToken = await this.prisma.passwordSetupToken.create({
+      data: { userUid, expiresOn },
+    });
+
+    const url = this.configService.get('VITE_BASE_URL');
+    await this.mailerService.sendEmail(email, {
+      template: 'password-setup',
+      variables: {
+        username,
+        inviteeEmail: email,
+        setupLink: `${url}/set-password?token=${setupToken.token}`,
+      },
+    });
+  }
+
+  /**
+   * Verify a password setup token and save the hashed password for the user.
+   *
+   * @param token    The setup token from the email link
+   * @param password The new plaintext password chosen by the user
+   * @returns Either of AuthTokens (user is immediately signed in) or RESTError
+   */
+  async setPasswordViaToken(token: string, password: string) {
+    const setupToken = await this.prisma.passwordSetupToken.findUnique({
+      where: { token },
+    });
+
+    if (!setupToken)
+      return E.left(<RESTError>{
+        message: PASSWORD_SETUP_TOKEN_INVALID,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
+    if (setupToken.expiresOn < new Date())
+      return E.left(<RESTError>{
+        message: PASSWORD_SETUP_TOKEN_EXPIRED,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
+    const passwordHash = await argon2.hash(password);
+
+    await this.prisma.user.update({
+      where: { uid: setupToken.userUid },
+      data: { passwordHash },
+    });
+
+    await this.prisma.passwordSetupToken.delete({ where: { token } });
+
+    return this.generateAuthTokens(setupToken.userUid);
+  }
+
+  /**
+   * Sign in a user with username and password (local auth).
+   *
+   * @param username The user's unique username
+   * @param password The plaintext password to verify
+   * @returns Either of AuthTokens or RESTError
+   */
+  async signInLocal(username: string, password: string) {
+    const user = await this.prisma.user.findUnique({ where: { username } });
+
+    if (!user)
+      return E.left(<RESTError>{
+        message: INVALID_LOCAL_CREDENTIALS,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
+    if (!user.passwordHash)
+      return E.left(<RESTError>{
+        message: PASSWORD_NOT_SET,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
+    const isMatch = await argon2.verify(user.passwordHash, password);
+    if (!isMatch)
+      return E.left(<RESTError>{
+        message: INVALID_LOCAL_CREDENTIALS,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
+    await this.prisma.user.update({
+      where: { uid: user.uid },
+      data: { lastLoggedOn: new Date() },
+    });
+
+    return this.generateAuthTokens(user.uid);
+  }
+
+  /**
+   * Create a new local user account with username + email.
+   * Sends a password-setup email with an expirable token.
+   * Intended to be called by admins only.
+   *
+   * @param username Username for the new account (must be unique)
+   * @param email    Email address of the new user
+   * @returns Either of the created User or RESTError
+   */
+  async createLocalUser(username: string, email: string) {
+    if (!validateEmail(email))
+      return E.left(<RESTError>{
+        message: INVALID_EMAIL,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingUsername)
+      return E.left(<RESTError>{
+        message: USERNAME_ALREADY_EXISTS,
+        statusCode: HttpStatus.CONFLICT,
+      });
+
+    const existingEmail = await this.usersService.findUserByEmail(email);
+    if (O.isSome(existingEmail))
+      return E.left(<RESTError>{
+        message: INVALID_EMAIL,
+        statusCode: HttpStatus.CONFLICT,
+      });
+
+    const user = await this.prisma.user.create({
+      data: { username, email, displayName: username },
+    });
+
+    await this.sendPasswordSetupEmail(user.uid, email, username);
+
+    return E.right(user);
   }
 }

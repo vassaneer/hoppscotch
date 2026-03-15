@@ -37,4 +37,8 @@ export default {
   getOnBoardingConfigs: (token: string) =>
     restApi.get('/onboarding/config?token=' + token),
   logout: () => restApi.get('/auth/logout'),
+  localSignIn: (username: string, password: string) =>
+    restApi.post('/auth/local/signin', { username, password }),
+  setPassword: (token: string, password: string) =>
+    restApi.post('/auth/local/set-password', { token, password }),
 };

@@ -1,5 +1,14 @@
 export const INVALID_EMAIL = 'invalid/email' as const;
 
+export const USERNAME_ALREADY_EXISTS = 'user/username_already_exists' as const;
+export const INVALID_LOCAL_CREDENTIALS =
+  'auth/invalid_local_credentials' as const;
+export const PASSWORD_NOT_SET = 'auth/password_not_set' as const;
+export const PASSWORD_SETUP_TOKEN_INVALID =
+  'auth/password_setup_token_invalid' as const;
+export const PASSWORD_SETUP_TOKEN_EXPIRED =
+  'auth/password_setup_token_expired' as const;
+
 export const EMAIL_FAILED = 'email/failed' as const;
 export const DUPLICATE_EMAIL = 'email/both_emails_cannot_be_same' as const;
 

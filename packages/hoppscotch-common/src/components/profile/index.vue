@@ -92,6 +92,70 @@
       </div>
     </section>
 
+    <section
+      v-if="platform.auth.setUsername || platform.auth.setLocalPassword"
+      class="p-4"
+    >
+      <h4 class="font-semibold text-secondaryDark">Local Login Credentials</h4>
+      <div class="my-1 text-secondaryLight">
+        Set a username and password to log in without email magic link.
+      </div>
+
+      <div v-if="platform.auth.setUsername" class="py-4">
+        <label>Username</label>
+        <HoppSmartInput
+          v-model="localUsername"
+          :autofocus="false"
+          styles="mt-2 md:max-w-sm"
+          placeholder="Choose a username"
+        >
+          <template #button>
+            <HoppButtonSecondary
+              filled
+              outline
+              :label="t('action.save')"
+              class="min-w-[4rem] ml-2"
+              :loading="updatingUsername"
+              @click="updateUsername"
+            />
+          </template>
+        </HoppSmartInput>
+      </div>
+
+      <div v-if="platform.auth.setLocalPassword" class="py-4 space-y-2">
+        <label>Password</label>
+        <HoppSmartInput
+          v-model="currentPassword"
+          type="password"
+          :autofocus="false"
+          styles="mt-2 md:max-w-sm"
+          placeholder="Current password (if already set)"
+        />
+        <HoppSmartInput
+          v-model="newPassword"
+          type="password"
+          :autofocus="false"
+          styles="mt-2 md:max-w-sm"
+          placeholder="New password (min. 8 characters)"
+        />
+        <HoppSmartInput
+          v-model="confirmPassword"
+          type="password"
+          :autofocus="false"
+          styles="mt-2 md:max-w-sm"
+          placeholder="Confirm new password"
+        />
+        <HoppButtonSecondary
+          filled
+          outline
+          label="Update Password"
+          class="mt-2"
+          :loading="updatingPassword"
+          @click="updatePassword"
+        />
+      </div>
+    </section>
+
     <template v-if="platform.ui?.additionalProfileSections?.length">
       <template
         v-for="(item, index) in platform.ui?.additionalProfileSections"
@@ -165,6 +229,54 @@ const updateDisplayName = async () => {
 const emailAddress = ref(currentUser.value?.email || "")
 const updatingEmailAddress = ref(false)
 watchEffect(() => (emailAddress.value = currentUser.value?.email || ""))
+
+const localUsername = ref("")
+const updatingUsername = ref(false)
+const currentPassword = ref("")
+const newPassword = ref("")
+const confirmPassword = ref("")
+const updatingPassword = ref(false)
+
+const updateUsername = async () => {
+  const username = localUsername.value.trim()
+  if (!username) {
+    toast.error("Username cannot be empty")
+    return
+  }
+  updatingUsername.value = true
+  try {
+    await platform.auth.setUsername!(username)
+    toast.success("Username updated")
+  } catch {
+    toast.error(`${t("error.something_went_wrong")}`)
+  }
+  updatingUsername.value = false
+}
+
+const updatePassword = async () => {
+  if (newPassword.value !== confirmPassword.value) {
+    toast.error("Passwords do not match")
+    return
+  }
+  if (newPassword.value.length < 8) {
+    toast.error("Password must be at least 8 characters")
+    return
+  }
+  updatingPassword.value = true
+  try {
+    await platform.auth.setLocalPassword!(
+      newPassword.value,
+      currentPassword.value || undefined
+    )
+    toast.success("Password updated")
+    currentPassword.value = ""
+    newPassword.value = ""
+    confirmPassword.value = ""
+  } catch {
+    toast.error(`${t("error.something_went_wrong")}`)
+  }
+  updatingPassword.value = false
+}
 
 const updateEmailAddress = async () => {
   const inputEmailAddress = emailAddress.value.trim()

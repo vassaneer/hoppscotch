@@ -104,6 +104,8 @@ model User {
   createdOn            DateTime              @default(now()) @db.Timestamptz(3)
   lastLoggedOn         DateTime?             @db.Timestamptz(3)
   lastActiveOn         DateTime?             @db.Timestamptz(3)
+  username             String?               @unique
+  passwordHash         String?
   providerAccounts     Account[]
   invitedUsers         InvitedUsers[]
   mockServers          MockServer[]
@@ -115,6 +117,14 @@ model User {
   userRequests         UserRequest[]
   settings             UserSettings?
   VerificationToken    VerificationToken[]
+  PasswordSetupToken   PasswordSetupToken[]
+}
+
+model PasswordSetupToken {
+  token     String   @unique @default(cuid())
+  userUid   String
+  expiresOn DateTime @db.Timestamptz(3)
+  user      User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model Account {

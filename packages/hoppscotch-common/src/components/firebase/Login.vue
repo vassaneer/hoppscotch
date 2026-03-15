@@ -61,6 +61,31 @@
           />
         </form>
 
+        <form
+          v-if="mode === 'local'"
+          class="flex flex-col space-y-2"
+          @submit.prevent="signInWithLocal"
+        >
+          <HoppSmartInput
+            v-model="localForm.username"
+            placeholder=" "
+            label="Username"
+            input-styles="floating-input"
+          />
+          <HoppSmartInput
+            v-model="localForm.password"
+            type="password"
+            placeholder=" "
+            label="Password"
+            input-styles="floating-input"
+          />
+          <HoppButtonPrimary
+            :loading="signingInWithLocal"
+            type="submit"
+            label="Sign in"
+          />
+        </form>
+
         <div
           v-if="!allowedAuthProviders?.length && !additionalLoginItems.length"
           class="flex flex-col items-center text-center"
@@ -116,7 +141,7 @@
           label="Privacy Policy"
         />
       </div>
-      <div v-if="mode === 'email'">
+      <div v-if="mode === 'email' || mode === 'local'">
         <HoppButtonSecondary
           :label="t('auth.all_sign_in_options')"
           :icon="IconArrowLeft"
@@ -159,6 +184,7 @@ import IconGoogle from "~icons/auth/google"
 import IconMicrosoft from "~icons/auth/microsoft"
 import IconArrowLeft from "~icons/lucide/arrow-left"
 import IconFileText from "~icons/lucide/file-text"
+import IconUser from "~icons/lucide/user"
 
 import { useService } from "dioc/vue"
 import { LoginItemDef } from "~/platform/auth"
@@ -180,12 +206,18 @@ const form = {
   email: "",
 }
 
+const localForm = {
+  username: "",
+  password: "",
+}
+
 const isLoadingAllowedAuthProviders = ref(true)
 
 const signingInWithGoogle = ref(false)
 const signingInWithGitHub = ref(false)
 const signingInWithMicrosoft = ref(false)
 const signingInWithEmail = ref(false)
+const signingInWithLocal = ref(false)
 const mode = ref("sign-in")
 
 const tosLink = import.meta.env.VITE_APP_TOS_LINK
@@ -356,6 +388,18 @@ const signInWithEmail = async () => {
     })
 }
 
+const signInWithLocal = async () => {
+  if (!platform.auth.signInWithLocal) return
+  signingInWithLocal.value = true
+  try {
+    await platform.auth.signInWithLocal(localForm.username, localForm.password)
+  } catch (e) {
+    console.error(e)
+    toast.error(`${t("error.something_went_wrong")}`)
+  }
+  signingInWithLocal.value = false
+}
+
 const authProvidersAvailable: AuthProviderItem[] = [
   {
     id: "GITHUB",
@@ -394,6 +438,15 @@ const authProvidersAvailable: AuthProviderItem[] = [
       mode.value = "email"
     },
     isLoading: signingInWithEmail,
+  },
+  {
+    id: "LOCAL",
+    icon: IconUser,
+    label: "Sign in with Username",
+    action: () => {
+      mode.value = "local"
+    },
+    isLoading: signingInWithLocal,
   },
 ]
 

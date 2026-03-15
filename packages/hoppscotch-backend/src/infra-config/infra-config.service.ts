@@ -583,6 +583,15 @@ export class InfraConfigService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
+    // Always include LOCAL provider
+    if (!allowedAuthProviders.includes(AuthProvider.LOCAL)) {
+      allowedAuthProviders.push(AuthProvider.LOCAL);
+      const entry = configEntries.find(
+        (e) => e.name === InfraConfigEnum.VITE_ALLOWED_AUTH_PROVIDERS,
+      );
+      if (entry) entry.value = allowedAuthProviders.join(',');
+    }
+
     // Move forward with updating the InfraConfigs
     const isUpdated = await this.updateMany(configEntries, false);
     if (E.isLeft(isUpdated)) return E.left(isUpdated.left);

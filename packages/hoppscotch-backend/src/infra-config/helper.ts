@@ -80,6 +80,7 @@ export function getAuthProviderRequiredKeys(
             InfraConfigEnum.MAILER_SMTP_URL,
             InfraConfigEnum.MAILER_ADDRESS_FROM,
           ],
+    [AuthProvider.LOCAL]: [],
   };
 }
 

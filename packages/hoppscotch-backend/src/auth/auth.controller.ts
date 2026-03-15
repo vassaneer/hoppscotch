@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Query,
   Request,
@@ -12,6 +13,9 @@ import {
 import { AuthService } from './auth.service';
 import { SignInMagicDto } from './dto/signin-magic.dto';
 import { VerifyMagicDto } from './dto/verify-magic.dto';
+import { LocalSignInDto } from './dto/local-signin.dto';
+import { SetPasswordDto } from './dto/set-password.dto';
+import { UpdateUsernameDto, UpdatePasswordDto } from './dto/update-credentials.dto';
 import { Response } from 'express';
 import * as E from 'fp-ts/Either';
 import { RTJwtAuthGuard } from './guards/rt-jwt-auth.guard';
@@ -225,5 +229,72 @@ export class AuthController {
       uid: user.uid,
       message: 'Token is valid',
     };
+  }
+
+  /**
+   ** Sign in with username and password (local auth)
+   */
+  @Post('local/signin')
+  async localSignIn(@Body() body: LocalSignInDto, @Res() res: Response) {
+    if (
+      !authProviderCheck(
+        AuthProvider.LOCAL,
+        this.configService.get('INFRA.VITE_ALLOWED_AUTH_PROVIDERS'),
+      )
+    ) {
+      throwHTTPErr({ message: AUTH_PROVIDER_NOT_SPECIFIED, statusCode: 404 });
+    }
+
+    const authTokens = await this.authService.signInLocal(
+      body.username,
+      body.password,
+    );
+    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
+    authCookieHandler(res, authTokens.right, false, null, this.configService);
+  }
+
+  /**
+   ** Update username for the currently logged-in user
+   */
+  @Patch('local/username')
+  @UseGuards(JwtAuthGuard)
+  async updateUsername(
+    @GqlUser() user: AuthUser,
+    @Body() body: UpdateUsernameDto,
+  ) {
+    const result = await this.authService.updateUsername(user.uid, body.username);
+    if (E.isLeft(result)) throwHTTPErr(result.left);
+    return { message: 'Username updated' };
+  }
+
+  /**
+   ** Update password for the currently logged-in user
+   */
+  @Patch('local/password')
+  @UseGuards(JwtAuthGuard)
+  async updatePassword(
+    @GqlUser() user: AuthUser,
+    @Body() body: UpdatePasswordDto,
+  ) {
+    const result = await this.authService.updatePassword(
+      user.uid,
+      body.newPassword,
+      body.currentPassword,
+    );
+    if (E.isLeft(result)) throwHTTPErr(result.left);
+    return { message: 'Password updated' };
+  }
+
+  /**
+   ** Set password using a one-time setup token (from the invite email)
+   */
+  @Post('local/set-password')
+  async setPassword(@Body() body: SetPasswordDto, @Res() res: Response) {
+    const authTokens = await this.authService.setPasswordViaToken(
+      body.token,
+      body.password,
+    );
+    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
+    authCookieHandler(res, authTokens.right, false, null, this.configService);
   }
 }

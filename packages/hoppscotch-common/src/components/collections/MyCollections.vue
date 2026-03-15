@@ -802,9 +802,32 @@ const activeRequestPathPrefixes = computed(() => {
   return prefixes
 })
 
+// When a search filter is active, expand all nodes that have visible children
+// in the filtered result so requests aren't hidden behind collapsed nodes.
+const searchExpandPrefixes = computed(() => {
+  if (!props.filterText) return new Set<string>()
+
+  const prefixes = new Set<string>()
+  props.filteredCollections.forEach((collection, collIdx) => {
+    const collId = collIdx.toString()
+    if (collection.folders.length > 0 || collection.requests.length > 0) {
+      prefixes.add(collId)
+    }
+    collection.folders.forEach((_, folderIdx) => {
+      prefixes.add(`${collId}/${folderIdx}`)
+    })
+  })
+  return prefixes
+})
+
 // Provide the set directly so AutoExpandNode can inject it without
 // relying on prop propagation through deeply nested slot TreeBranch layers.
-provide(EXPAND_PREFIXES_KEY, activeRequestPathPrefixes)
+// Merge active-tab prefixes with search-result prefixes.
+const expandPrefixesMerged = computed(
+  () =>
+    new Set([...activeRequestPathPrefixes.value, ...searchExpandPrefixes.value])
+)
+provide(EXPAND_PREFIXES_KEY, expandPrefixesMerged)
 
 const isActiveRequest = (folderPath: string, requestRefID: string) => {
   if (active.value === null || !active.value) return false

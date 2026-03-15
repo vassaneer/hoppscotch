@@ -830,15 +830,18 @@ const filteredCollections = computed(() => {
         filteredRequests.push(request)
     }
     for (const folder of collection.folders) {
-      if (isMatch(folder.name)) filteredFolders.push(folder)
-      const filteredFolderRequests = []
-      for (const request of folder.requests) {
-        if (isRequestMatch(request)) filteredFolderRequests.push(request)
-      }
-      if (filteredFolderRequests.length > 0) {
-        const filteredFolder = Object.assign({}, folder)
-        filteredFolder.requests = filteredFolderRequests
-        filteredFolders.push(filteredFolder)
+      if (isMatch(folder.name)) {
+        filteredFolders.push(folder)
+      } else {
+        const filteredFolderRequests = []
+        for (const request of folder.requests) {
+          if (isRequestMatch(request)) filteredFolderRequests.push(request)
+        }
+        if (filteredFolderRequests.length > 0) {
+          const filteredFolder = Object.assign({}, folder)
+          filteredFolder.requests = filteredFolderRequests
+          filteredFolders.push(filteredFolder)
+        }
       }
     }
 

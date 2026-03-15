@@ -896,7 +896,38 @@ const activeRequestPathPrefixes = computed(() => {
   return prefixes
 })
 
-provide(EXPAND_PREFIXES_KEY, activeRequestPathPrefixes)
+const searchExpandPrefixes = computed(() => {
+  if (!props.filterText) return new Set<string>()
+  const prefixes = new Set<string>()
+
+  const traverse = (
+    collections: TeamCollection[],
+    parentPath: string | null
+  ) => {
+    collections.forEach((col) => {
+      const path = parentPath ? `${parentPath}/${col.id}` : col.id
+      if (
+        (col.children && col.children.length > 0) ||
+        (col.requests && col.requests.length > 0)
+      ) {
+        prefixes.add(path)
+      }
+      if (col.children) {
+        traverse(col.children, path)
+      }
+    })
+  }
+
+  traverse(props.teamCollectionList, null)
+  return prefixes
+})
+
+const expandPrefixesMerged = computed(
+  () =>
+    new Set([...activeRequestPathPrefixes.value, ...searchExpandPrefixes.value])
+)
+
+provide(EXPAND_PREFIXES_KEY, expandPrefixesMerged)
 
 const isActiveRequest = (requestID: string) => {
   if (!active.value) return false

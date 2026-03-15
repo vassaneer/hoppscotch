@@ -287,4 +287,26 @@ export type AuthPlatformDef = {
    * @returns True if tokens were refreshed successfully, false otherwise
    */
   refreshAuthToken?: () => Promise<boolean>
+
+  /**
+   * Signs in with username and password (local auth provider).
+   * Only available when LOCAL auth provider is enabled.
+   */
+  signInWithLocal?: (username: string, password: string) => Promise<void>
+
+  /**
+   * Sets or updates the username for local (username/password) login.
+   * Only available when LOCAL auth provider is enabled.
+   */
+  setUsername?: (username: string) => Promise<void>
+
+  /**
+   * Sets or updates the password for local (username/password) login.
+   * @param newPassword The new password (min 8 chars)
+   * @param currentPassword Required if password is already set
+   */
+  setLocalPassword?: (
+    newPassword: string,
+    currentPassword?: string
+  ) => Promise<void>
 }
