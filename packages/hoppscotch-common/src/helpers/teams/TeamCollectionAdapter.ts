@@ -1015,7 +1015,14 @@ export default class NewTeamCollectionAdapter {
 
     if (!collection) return
 
-    if (collection.children !== null) return
+    // Skip if already expanded and has content (children or requests loaded)
+    // Allow re-fetch if previously expanded but empty (e.g. data added after initial load)
+    const alreadyExpanded =
+      collection.children !== null && collection.requests !== null
+    const hasContent =
+      (collection.children?.length ?? 0) > 0 ||
+      (collection.requests?.length ?? 0) > 0
+    if (alreadyExpanded && hasContent) return
 
     this.loadingCollections$.next([
       ...this.loadingCollections$.getValue(),

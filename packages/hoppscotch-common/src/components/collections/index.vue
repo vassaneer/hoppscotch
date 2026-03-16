@@ -676,16 +676,15 @@ const handleCollectionClick = (payload: {
   collectionID: string
   isOpen: boolean
 }) => {
-  teamCollectionService.toggleCollection(payload.collectionID, payload.isOpen)
-
-  if (
-    filterTexts.value.length > 0 &&
-    teamsSearchResults.value.length &&
-    payload.isOpen
-  ) {
-    expandCollection(payload.collectionID)
+  // In search mode, don't touch the main tree's expanded state
+  if (filterTexts.value.length > 0 && teamsSearchResults.value.length) {
+    if (payload.isOpen) {
+      expandCollection(payload.collectionID)
+    }
     return
   }
+
+  teamCollectionService.toggleCollection(payload.collectionID, payload.isOpen)
 }
 
 const expandTeamCollection = (collectionID: string) => {
