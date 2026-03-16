@@ -161,7 +161,7 @@ function convertToTeamTree(
       const effectiveRequest =
         requestSchemaParsedResult.type === "ok"
           ? requestSchemaParsedResult.value
-          : getDefaultRESTRequest()
+          : { ...getDefaultRESTRequest(), name: request.title }
 
       parentCollection.requests = parentCollection.requests || []
       parentCollection.requests.push({

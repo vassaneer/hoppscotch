@@ -50,9 +50,6 @@ export default <HoppModule>{
 
     updateApp = registerSW({
       immediate: true,
-      onNeedRefresh() {
-        pwaNeedsRefresh.value = true
-      },
       onOfflineReady() {
         pwaReadyForOffline.value = true
       },

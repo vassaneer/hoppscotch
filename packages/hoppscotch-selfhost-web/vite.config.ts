@@ -225,8 +225,10 @@ export default defineConfig({
           },
         ],
       },
-      registerType: "prompt",
+      registerType: "autoUpdate",
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 15728640, // 15 MB
         navigateFallbackDenylist: [
